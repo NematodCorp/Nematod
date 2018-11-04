@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="cpu65c02"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/yann/QtProjects/cpu65c02/build"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/yann/QtProjects/cpu65c02/build"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="cpu65c02">
+				<Option output="/home/yann/QtProjects/cpu65c02/build/bin/cpu65c02" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/yann/QtProjects/cpu65c02/build/bin"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/home/yann/QtProjects/cpu65c02/include"/>
+					<Add directory="/bin/../lib64/gcc/x86_64-pc-linux-gnu/8.1.1/../../../../include/c++/8.1.1"/>
+					<Add directory="/bin/../lib64/gcc/x86_64-pc-linux-gnu/8.1.1/../../../../include/c++/8.1.1/x86_64-pc-linux-gnu"/>
+					<Add directory="/bin/../lib64/gcc/x86_64-pc-linux-gnu/8.1.1/../../../../include/c++/8.1.1/backward"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/clang/6.0.0/include"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 cpu65c02"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="cpu65c02/fast">
+				<Option output="/home/yann/QtProjects/cpu65c02/build/bin/cpu65c02" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/yann/QtProjects/cpu65c02/build/bin"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/home/yann/QtProjects/cpu65c02/include"/>
+					<Add directory="/bin/../lib64/gcc/x86_64-pc-linux-gnu/8.1.1/../../../../include/c++/8.1.1"/>
+					<Add directory="/bin/../lib64/gcc/x86_64-pc-linux-gnu/8.1.1/../../../../include/c++/8.1.1/x86_64-pc-linux-gnu"/>
+					<Add directory="/bin/../lib64/gcc/x86_64-pc-linux-gnu/8.1.1/../../../../include/c++/8.1.1/backward"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/clang/6.0.0/include"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 cpu65c02/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/yann/QtProjects/cpu65c02/build"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/yann/QtProjects/cpu65c02/build/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/include/cpu65c02.hpp">
+			<Option target="cpu65c02"/>
+		</Unit>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/src/addr_modes.hpp">
+			<Option target="cpu65c02"/>
+		</Unit>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/src/cpu65c02.cpp">
+			<Option target="cpu65c02"/>
+		</Unit>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/src/instructions.cpp">
+			<Option target="cpu65c02"/>
+		</Unit>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/src/main.cpp">
+			<Option target="cpu65c02"/>
+		</Unit>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/src/opcode_table.cpp">
+			<Option target="cpu65c02"/>
+		</Unit>
+		<Unit filename="/home/yann/QtProjects/cpu65c02/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/cpu65c02.hpp
+cstdint
+-
+array
+-
+
+/home/yann/QtProjects/cpu65c02/src/addr_modes.hpp
+cpu65c02.hpp
+/home/yann/QtProjects/cpu65c02/src/cpu65c02.hpp
+
+/home/yann/QtProjects/cpu65c02/src/cpu65c02.cpp
+cpu65c02.hpp
+/home/yann/QtProjects/cpu65c02/src/cpu65c02.hpp
+array
+-
+cstdio
+-
+
+/home/yann/QtProjects/cpu65c02/src/instructions.cpp
+cpu65c02.hpp
+/home/yann/QtProjects/cpu65c02/src/cpu65c02.hpp
+
+/home/yann/QtProjects/cpu65c02/src/main.cpp
+cpu65c02.hpp
+/home/yann/QtProjects/cpu65c02/src/cpu65c02.hpp
+
+/home/yann/QtProjects/cpu65c02/src/opcode_table.cpp
+cpu65c02.hpp
+/home/yann/QtProjects/cpu65c02/src/cpu65c02.hpp
+array
+-
+utility
+-
+variant
+-
+addr_modes.hpp
+/home/yann/QtProjects/cpu65c02/src/addr_modes.hpp
+
