@@ -1,3 +1,0 @@
-/home/yann/QtProjects/cpu65c02/build/CMakeFiles/rebuild_cache.dir
-/home/yann/QtProjects/cpu65c02/build/CMakeFiles/cpu65c02.dir
-/home/yann/QtProjects/cpu65c02/build/CMakeFiles/edit_cache.dir
