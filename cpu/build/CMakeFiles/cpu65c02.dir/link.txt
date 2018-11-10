@@ -1,1 +1,0 @@
-/bin/clang++   -std=c++17 -Wall -Wextra -Werror=return-type -Os  -rdynamic CMakeFiles/cpu65c02.dir/src/cpu65c02.cpp.o CMakeFiles/cpu65c02.dir/src/instructions.cpp.o CMakeFiles/cpu65c02.dir/src/main.cpp.o CMakeFiles/cpu65c02.dir/src/opcode_table.cpp.o  -o bin/cpu65c02 

@@ -25,6 +25,10 @@ SUBDIRLIST(LIBS ${CMAKE_SOURCE_DIR})
 list(REMOVE_ITEM LIBS tests)
 list(REMOVE_ITEM LIBS build)
 list(REMOVE_ITEM LIBS bin)
+list(REMOVE_ITEM LIBS .git)
+list(REMOVE_ITEM LIBS interface)
+
+include_directories(${CMAKE_SOURCE_DIR})
 
 FOREACH(lib ${LIBS})
        ADD_SUBDIRECTORY(${lib})
