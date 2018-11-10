@@ -83,4 +83,21 @@ TEST(Interrupts, DoubleRaiseReleaseInterrupt) {
        EXPECT_TRUE(ib.is_asserted());
        ee_b.e_release();
        EXPECT_FALSE(ib.is_asserted());
+
+       ib.remove_slave(&ee_a);
+       ib.remove_slave(&ee_b);
+}
+
+TEST(Interrupts, EdgeTriggeredInterrupt) {
+       InterruptBus<NMI> ib;
+       ExposedEmitter<NMI> ee;
+
+       ib.add_slave(&ee);
+
+       ee.e_raise();
+
+       EXPECT_TRUE(ib.is_asserted());
+       EXPECT_FALSE(ib.is_asserted());
+       EXPECT_FALSE(ib.is_asserted());
+
 }

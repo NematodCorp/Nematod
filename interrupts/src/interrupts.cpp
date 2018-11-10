@@ -29,6 +29,6 @@ bool InterruptBus<T>::is_asserted() {
 }
 
 template<interrupt_kind T>
-bool InterruptBus<T>::eval_method(bool curr_state, const InterruptEmitter<T>& take_in_account) {
+bool InterruptBus<T>::eval_method(bool curr_state, InterruptEmitter<T>& take_in_account) {
        return curr_state | take_in_account.is_raised();
 }

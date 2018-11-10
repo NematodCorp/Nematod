@@ -7,12 +7,6 @@
 using address = std::uint16_t;
 using data    = std::uint8_t;
 
-class MemoryHandler {
-public:
-       virtual data  read(address addr) = 0;
-       virtual void write(address addr, data value) = 0;
-};
-
 ////////// Attributes used for MMIO
 
 class MemoryInterfaceable {
@@ -29,10 +23,27 @@ protected:
        const std::size_t m_size;
 };
 
+////////// Tools primarily used by masters
+
 struct memory_port {
        MemoryInterfaceable* module;
        address base_address;
 };
+
+class AddressSpace {
+public:
+       void add_port(memory_port port);
+       void remove_port(MemoryInterfaceable* to_remove); // A single module can have multiple ports and bases, creating mirroring
+
+       // Master ports : used by transaction masters to initiate one
+       virtual data  read(address ptr);
+       virtual void write(address ptr, data val);
+
+protected:
+       std::vector<memory_port> m_ports;
+       data m_last_written_value = 0xAA; // Used to emulate open-bus.
+};
+
 
 ////////// ROM & RAM(s) : provides unified definition
 
