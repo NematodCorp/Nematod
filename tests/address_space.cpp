@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 
 #include "address_space/include/address_space.hpp"
+#include "interface/address_space.hpp"
 
 TEST(AddressSpace, AddRemovePort) {
        struct RAM : public MemoryInterfaceable {
