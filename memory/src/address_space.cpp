@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "address_space.hpp"
+#include "memory.hpp"
 
 void AddressSpace::add_port(memory_port port) {
        if(port.module == nullptr) throw std::logic_error("Adding a port whose module is a null pointer was attempted");
