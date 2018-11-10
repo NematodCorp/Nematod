@@ -22,3 +22,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+
+#include "rom_loader.hpp"
+
+#include <cassert>
+
+#include <fstream>
+
+bool load_rom(const std::string& filename, std::array<uint8_t, 0x10000> &arr)
+{
+    std::ifstream file(filename);
+    if (!file) return false;
+
+    file.seekg(0, std::ios::end );
+    size_t size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    if (!file.read((char*)arr.data(), size))
+        return false;
+
+    return true;
+}

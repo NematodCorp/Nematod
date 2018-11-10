@@ -25,25 +25,48 @@ SOFTWARE.
 #ifndef CPU65C02_HPP
 #define CPU65C02_HPP
 
+/** Configuration constants **/
+#define CPU6502_FLAVOR MOS6502 // Choose the cpu type
+/** *********************** **/
+
 #include <cstdint>
+
+#include "common/bitops.hpp"
 
 struct OpcodeEntry;
 
-class cpu65c02
+enum cpu_type
 {
+    MOS6502,
+    NES6502,
+    WDC65c02
+};
+
+#ifndef CPU6502_FLAVOR
+#define CPU6502_FLAVOR MOS6502
+#endif
+
+class cpu6502
+{
+public:
+    static constexpr cpu_type flavor = CPU6502_FLAVOR;
+
 public:
     using ReadCallback  = uint8_t(*)(uint16_t addr);
     using WriteCallback =    void(*)(uint16_t addr, uint8_t val);
     using LogCallback   =    void(*)(const char* str);
 
-    cpu65c02(ReadCallback read_clbk, WriteCallback write_clbk, LogCallback log = nullptr);
+    cpu6502(ReadCallback in_read_clbk, WriteCallback in_write_clbk, LogCallback in_log_clbk = nullptr)
+        : read_clbk(in_read_clbk), write_clbk(in_write_clbk), log_clbk(in_log_clbk)
+    { reset(); }
 
 public:
-    void irq();
-    void nmi();
+    void pull_irq_low();
+    void raise_nmi();
     void reset();
 
-    unsigned cycles() const { return m_cycles; }
+    unsigned cycles () const { return m_cycles;  }
+    bool     stopped() const { return m_stopped; }
 
     void run(unsigned steps);
 
@@ -68,8 +91,16 @@ public:
         Neg   = 1<<7
     };
 
-private:
+public: /* private */
+    uint8_t read(uint16_t addr)
+    { return read_clbk(addr); }
+    void    write(uint16_t addr, uint8_t val)
+    { write_clbk(addr, val); }
 
+    void    log(const char* str)
+    { if (log_clbk) log_clbk(str); }
+
+private:
     bool carry() const
     { return state.flags & Carry; }
     bool zero() const
@@ -77,7 +108,11 @@ private:
     bool interrupts_enabled() const
     { return !(state.flags & IntD); }
     bool decimal() const
-    { return state.flags & Decim; }
+    {
+        if constexpr (flavor == NES6502) // no decimal mode on the NES's 6502
+                return false;
+        return state.flags & Decim;
+    }
     bool is_break() const
     { return state.flags & Break; }
     bool overflow() const
@@ -85,10 +120,54 @@ private:
     bool negative() const
     { return state.flags & Neg; }
 
-    void branch_on(uint16_t addr, bool cond);
+    void branch_on(int8_t disp, bool cond);
+
+    void set_carry(bool val) { bit_change(state.flags, val, 0); }
+    void set_int_disable(bool val) { bit_change(state.flags, val, 2); }
+    void set_decimal_mode(bool val) { bit_change(state.flags, val, 3); }
+    void set_brk_flag(bool val) { bit_change(state.flags, val, 4); }
+    void set_overflow(bool val) { bit_change(state.flags, val, 6); }
+    void set_negative(bool val) { bit_change(state.flags, val, 7); }
+
+    void test_zn(uint8_t val)
+    {
+#if 0
+        state.flags &= ~0b10000010; // clear Z and S
+        state.flags |= val & 0x80; // sign
+        state.flags |= !!(val==0) << 1;
+#else
+        state.flags = (state.flags&~0b10000010) | ((val) ? (val & 0x80) : 0b10);
+#endif
+    }
+
+    void push(uint8_t val);
+    uint8_t pop();
+
+    void switch_to_isr(uint16_t vector, bool brk = false);
 
 public: /* private */
-    template<enum AddrModes : unsigned>
+    enum AddrModes : unsigned
+    {
+        Implied,
+        Immediate,
+        ZeroPage,
+        ZeroPageX,
+        ZeroPageY,
+        Absolute,
+        AbsoluteX,
+        AbsoluteY,
+        IndZeroX,
+        IndZeroY,
+        IndirectZP,
+        Indirect,
+        IndirectX,
+        BitRelative,
+        BitZP,
+
+        AddrModesCount
+    };
+
+    template<enum AddrModes>
     uint16_t addr_mode_get();
 
     void invalid_opcode();
@@ -132,6 +211,7 @@ public: /* private */
     void ora(uint16_t);
     void and_(uint16_t);
     void jmp(uint16_t);
+    void ind_jmp(uint16_t);
     void jsr(uint16_t);
     void lda(uint16_t);
     void ldx(uint16_t);
@@ -166,10 +246,16 @@ public: /* private */
     void stp();
     void wai();
 
-public:
-    ReadCallback read;
-    WriteCallback write;
-    LogCallback log;
+private:
+    ReadCallback read_clbk;
+    WriteCallback write_clbk;
+    LogCallback log_clbk;
+
+    bool m_stopped { false };
+    bool m_irq_pending { false };
+    bool m_nmi_pending { false };
+    bool m_int_delay   { false };
+    bool m_wait_interrupt { false };
     unsigned m_cycles { 0 };
 };
 

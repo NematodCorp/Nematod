@@ -1,4 +1,4 @@
-/*
+﻿/*
 cpu65c02.cpp
 
 Copyright (c) 27 Yann BOUCHER (yann)
@@ -28,26 +28,59 @@ SOFTWARE.
 #include <array>
 #include <cstdio>
 
-extern std::array<void(*)(cpu65c02&), 256> opcodes;
+extern std::array<void(*)(cpu6502&), 256> opcodes;
 
-cpu65c02::cpu65c02(cpu65c02::ReadCallback read_clbk, cpu65c02::WriteCallback write_clbk, LogCallback log_clbk)
-    : read(read_clbk), write(write_clbk), log(log_clbk)
+void cpu6502::pull_irq_low()
 {
-    reset();
+    if (interrupts_enabled())
+    {
+        if (m_int_delay) // if the last instruction acted on the I flag, manually step to ensure the next one is executed before the isr
+        {
+            run(1);
+        }
+
+        switch_to_isr(0xFFFE);
+    }
+    m_wait_interrupt = false;
 }
 
-void cpu65c02::reset()
+void cpu6502::raise_nmi()
+{
+    if (m_int_delay) // if the last instruction acted on the I flag, manually step to ensure the next one is executed before the isr
+    {
+        run(1);
+    }
+
+    switch_to_isr(0xFFFA);
+
+    m_wait_interrupt = false;
+}
+
+void cpu6502::reset()
 {
     state.a = state.x = state.y = 0;
     state.flags = 0b00110100;
     state.sp = 0xFD;
-    state.pc = 0xFFFC;
+
+    state.pc =  read(0xFFFC);
+    state.pc |= read(0xFFFD) << 8;
+
+    m_stopped        = false;
+    m_int_delay      = false;
+    m_wait_interrupt = false;
 }
 
-void cpu65c02::run(unsigned steps)
+void cpu6502::run(unsigned steps)
 {
     for (size_t i { 0 }; i < steps; ++i)
     {
+        if (m_stopped || m_wait_interrupt)
+        {
+            return;
+        }
+
+        m_int_delay = false;
+
         uint8_t opcode = read(state.pc++);
 
         auto operation = opcodes[opcode];
@@ -57,10 +90,38 @@ void cpu65c02::run(unsigned steps)
     }
 }
 
-void cpu65c02::branch_on(uint16_t addr, bool cond)
+void cpu6502::switch_to_isr(uint16_t vector, bool brk)
+{
+    push(state.pc >> 8);
+    push(state.pc & 0xFF);
+    if constexpr (flavor == WDC65c02)
+    {
+        if (brk)
+            push((state.flags & ~0b01000) | 0b10000); // with D flag unset
+        else
+            push(state.flags & ~0b11000); // with B and D flag unset
+    }
+    else
+    {
+        if (brk)
+            push(state.flags | 0b10000);
+        else
+            push(state.flags & ~0b10000); // with B flag unset
+    }
+
+    uint16_t new_pc = 0;
+    new_pc  = read(vector  ); set_int_disable(true);
+    new_pc |= read(vector+1) << 8;
+
+    state.pc = new_pc;
+}
+
+void cpu6502::branch_on(int8_t disp, bool cond)
 {
     if (cond)
     {
+        uint16_t addr = state.pc + disp;
+
         if ((addr&0xFF00) != (state.pc&0xFF00)) // diff page
         {
             m_cycles += 1;
@@ -71,3 +132,16 @@ void cpu65c02::branch_on(uint16_t addr, bool cond)
     }
 }
 
+void cpu6502::push(uint8_t val)
+{
+    write(0x100 + state.sp, val);
+    --state.sp;
+}
+
+uint8_t cpu6502::pop()
+{
+    ++state.sp;
+    uint8_t val = read(0x100 + state.sp);
+
+    return val;
+}

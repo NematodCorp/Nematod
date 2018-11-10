@@ -25,4 +25,9 @@ SOFTWARE.
 #ifndef ROM_LOADER_HPP
 #define ROM_LOADER_HPP
 
+#include <array>
+#include <string>
+
+bool load_rom(const std::string &filename, std::array<uint8_t, 0x10000>& arr);
+
 #endif // ROM_LOADER_HPP

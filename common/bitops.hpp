@@ -1,7 +1,7 @@
 /*
 bitops.hpp
 
-Copyright (c) 06 Yann BOUCHER (yann)
+Copyright (c) 28 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,5 +24,37 @@ SOFTWARE.
 */
 #ifndef BITOPS_HPP
 #define BITOPS_HPP
+
+#include <stdlib.h>
+
+template <typename T>
+inline void bit_set(T& val, size_t pos)
+{
+    val |= 1 << pos;
+}
+
+template <typename T>
+inline void bit_clear(T& val, size_t pos)
+{
+    val &= ~(1 << pos);
+}
+
+template <typename T>
+inline void bit_toggle(T& val, size_t pos)
+{
+    val ^= 1 << pos;
+}
+
+template <typename T>
+inline bool bit_get(T val, size_t pos)
+{
+    return (val >> pos) & 1;
+}
+
+template <typename T>
+inline void bit_change(T& val, bool bit, size_t pos)
+{
+    val ^= (-bit ^ val) & (T(1) << pos);
+}
 
 #endif // BITOPS_HPP

@@ -27,34 +27,13 @@ SOFTWARE.
 
 #include "cpu.hpp"
 
-enum AddrModes : unsigned
-{
-    Implied,
-    Immediate,
-    ZeroPage,
-    ZeroPageX,
-    ZeroPageY,
-    Absolute,
-    AbsoluteX,
-    AbsoluteY,
-    IndZeroX,
-    IndZeroY,
-    IndirectZP,
-    Indirect,
-    IndirectX,
-    BitRelative,
-    BitZP,
-
-    AddrModesCount
-};
-
 template<>
-uint16_t cpu65c02::addr_mode_get<Immediate>()
+uint16_t cpu6502::addr_mode_get<cpu6502::Immediate>()
 {
     return state.pc++;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<ZeroPage>()
+uint16_t cpu6502::addr_mode_get<cpu6502::ZeroPage>()
 {
     m_cycles += 1;
 
@@ -62,7 +41,7 @@ uint16_t cpu65c02::addr_mode_get<ZeroPage>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<ZeroPageX>()
+uint16_t cpu6502::addr_mode_get<cpu6502::ZeroPageX>()
 {
     m_cycles += 2;
 
@@ -71,7 +50,7 @@ uint16_t cpu65c02::addr_mode_get<ZeroPageX>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<ZeroPageY>()
+uint16_t cpu6502::addr_mode_get<cpu6502::ZeroPageY>()
 {
     m_cycles += 2;
 
@@ -80,7 +59,7 @@ uint16_t cpu65c02::addr_mode_get<ZeroPageY>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<Absolute>()
+uint16_t cpu6502::addr_mode_get<cpu6502::Absolute>()
 {
     m_cycles += 2;
 
@@ -89,7 +68,7 @@ uint16_t cpu65c02::addr_mode_get<Absolute>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<AbsoluteX>()
+uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteX>()
 {
     m_cycles += 2;
 
@@ -103,7 +82,7 @@ uint16_t cpu65c02::addr_mode_get<AbsoluteX>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<AbsoluteY>()
+uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteY>()
 {
     m_cycles += 2;
 
@@ -117,16 +96,20 @@ uint16_t cpu65c02::addr_mode_get<AbsoluteY>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<IndZeroX>()
+uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroX>()
 {
     m_cycles += 4;
 
-    uint8_t addr  = read(state.pc++);
-    addr += state.x;
+
+    uint8_t zero_addr  = read(state.pc++);
+    zero_addr += state.x;
+    uint16_t addr      = read(zero_addr);
+             addr     |= read(zero_addr+1)<<8;
+
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<IndZeroY>()
+uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroY>()
 {
     m_cycles += 3;
 
@@ -141,15 +124,18 @@ uint16_t cpu65c02::addr_mode_get<IndZeroY>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<IndirectZP>()
+uint16_t cpu6502::addr_mode_get<cpu6502::IndirectZP>()
 {
     m_cycles += 3;
 
-    uint8_t addr  = read(state.pc++);
+    uint8_t zero_addr  = read(state.pc++);
+    uint16_t addr      = read(zero_addr);
+             addr     |= read(zero_addr+1)<<8;
+
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<Indirect>()
+uint16_t cpu6502::addr_mode_get<cpu6502::Indirect>()
 {
     m_cycles += 3;
 
@@ -158,7 +144,7 @@ uint16_t cpu65c02::addr_mode_get<Indirect>()
     return addr;
 }
 template<>
-uint16_t cpu65c02::addr_mode_get<IndirectX>()
+uint16_t cpu6502::addr_mode_get<cpu6502::IndirectX>()
 {
     m_cycles += 3;
 
