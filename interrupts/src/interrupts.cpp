@@ -4,7 +4,7 @@
 #include "interrupts.hpp"
 
 template<interrupt_kind T>
-void InterruptBus<T>::add_slave(InterruptEmitter<T> *to_add) {
+void InterruptBus_CtrlBlock<T>::add_slave(InterruptEmitter<T> *to_add) {
        if(to_add == nullptr) std::logic_error("Cannot add NULL as an interrupt emitter !");
 
        if(std::find(m_ie.begin(), m_ie.end(), to_add) == m_ie.end()) {
@@ -15,20 +15,27 @@ void InterruptBus<T>::add_slave(InterruptEmitter<T> *to_add) {
 }
 
 template<interrupt_kind T>
-void InterruptBus<T>::remove_slave(InterruptEmitter<T> *to_remove) {
+void InterruptBus_CtrlBlock<T>::remove_slave(InterruptEmitter<T> *to_remove) {
        m_ie.erase(std::remove(m_ie.begin(), m_ie.end(), to_remove), m_ie.end());
 }
 
-template<interrupt_kind T>
-bool InterruptBus<T>::is_asserted() {
-       bool asserted(false);
-       for(auto a : m_ie) {
-              asserted = eval_method(asserted, *a);
+bool NMIInterruptBus::is_asserted() {
+       bool bus_state = false;
+       for(auto i : m_ie) {
+              bus_state |= i->is_raised();
        }
-       return asserted;
+
+       bool retval = bus_state & !previous_state;
+       previous_state = bus_state;
+
+       return retval;
 }
 
-template<interrupt_kind T>
-bool InterruptBus<T>::eval_method(bool curr_state, const InterruptEmitter<T>& take_in_account) {
-       return curr_state | take_in_account.is_raised();
+bool IRQInterruptBus::is_asserted() {
+       bool bus_state = false;
+       for(auto i : m_ie) {
+              bus_state |= i->is_raised();
+       }
+
+       return bus_state;
 }

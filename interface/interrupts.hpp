@@ -14,8 +14,14 @@ private:
        bool m_state = false;
 };
 
-template<interrupt_kind T>
-class InterruptManager {
+// The two interrupt busses are NOT class related, as far as other modules are concerned
+
+class NMIInterruptBus_interface {
+public:
+       virtual bool is_asserted() = 0;
+};
+
+class IRQInterruptBus_interface {
 public:
        virtual bool is_asserted() = 0;
 };

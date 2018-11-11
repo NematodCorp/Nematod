@@ -7,7 +7,7 @@
 using address = std::uint16_t;
 using data    = std::uint8_t;
 
-class MemoryHandler {
+class Memory_interface {
 public:
        virtual data  read(address addr) = 0;
        virtual void write(address addr, data value) = 0;

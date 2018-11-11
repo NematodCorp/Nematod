@@ -75,10 +75,13 @@ TEST(Memory, OpenBus) {
        AddressSpace s;
 
        RAM<0x100> a;
+       RAM<0x100> b;
 
-       s.add_port(memory_port{&a, 0});
+       s.add_port(memory_port{&a, 0xA});
+       s.add_port(memory_port{&b, 0xf00A});
 
-       s.write(0, 0xff);
+       s.write(2, 0xff);
 
        EXPECT_EQ(s.read(0xdead), 0xff);
+       EXPECT_EQ(s.read(0), 0xff);
 }

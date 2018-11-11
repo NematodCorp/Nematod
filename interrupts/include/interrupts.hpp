@@ -7,23 +7,29 @@
 
 // The default InterruptBus is a Common Emitter bus.
 template<interrupt_kind T>
-class InterruptBus : public InterruptManager<T> {
+class InterruptBus_CtrlBlock {
 public:
        void add_slave(InterruptEmitter<T> *to_add);
        void remove_slave(InterruptEmitter<T> *to_remove);
 
-       virtual bool is_asserted() override;
-
 protected:
-       virtual bool eval_method(bool curr_state, const InterruptEmitter<T>& take_in_account);
-       // If state is "true" after having taken everything into account => exception raised
-
        std::vector<InterruptEmitter<T> *> m_ie;
 };
 
+class NMIInterruptBus : public NMIInterruptBus_interface, public InterruptBus_CtrlBlock<NMI> {
+public:
+       virtual bool is_asserted() override;
+protected:
+       bool previous_state = false;
+};
+
+class IRQInterruptBus : public IRQInterruptBus_interface, public InterruptBus_CtrlBlock<IRQ> {
+public:
+       virtual bool is_asserted() override;
+};
+
+template class InterruptBus_CtrlBlock<NMI>;
+template class InterruptBus_CtrlBlock<IRQ>;
 
 template class InterruptEmitter<NMI>;
 template class InterruptEmitter<IRQ>;
-
-template class InterruptBus<NMI>;
-template class InterruptBus<IRQ>;

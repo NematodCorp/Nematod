@@ -7,7 +7,7 @@
 
 //////////
 
-class AddressSpace : public MemoryHandler {
+class AddressSpace : public Memory_interface {
 public:
        void add_port(memory_port port);
        void remove_port(MemoryInterfaceable* to_remove); // A single module can have multiple ports and bases, creating mirroring
@@ -18,5 +18,5 @@ public:
 
 protected:
        std::vector<memory_port> m_ports;
-       data m_last_written_value = 0xAA; // Used to emulate open-bus.
+       data m_last_written_value = 0x00; // Used to emulate open-bus.
 };

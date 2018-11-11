@@ -12,19 +12,19 @@ public:
 
 TEST(Interrupts, AddRemoveSlave) {
        InterruptEmitter<IRQ> ie;
-       InterruptBus<IRQ> ib;
+       IRQInterruptBus ib;
 
        ib.add_slave(&ie);
        ib.remove_slave(&ie);
 }
 
 TEST(Interrupts, RemoveVoidSlave) {
-       InterruptBus<IRQ> ib;
+       IRQInterruptBus ib;
        ib.remove_slave(reinterpret_cast<InterruptEmitter<IRQ> *>(static_cast<uintptr_t>(0xdeadbeef)));
 }
 
 TEST(Interrupts, SingleRaiseInterrupt) {
-       InterruptBus<IRQ> ib;
+       IRQInterruptBus ib;
        ExposedEmitter<IRQ> ee;
 
        ib.add_slave(&ee);
@@ -37,7 +37,7 @@ TEST(Interrupts, SingleRaiseInterrupt) {
 }
 
 TEST(Interrupts, SingleRaiseReleaseInterrupt) {
-       InterruptBus<IRQ> ib;
+       IRQInterruptBus ib;
        ExposedEmitter<IRQ> ee;
 
        ib.add_slave(&ee);
@@ -52,7 +52,7 @@ TEST(Interrupts, SingleRaiseReleaseInterrupt) {
 }
 
 TEST(Interrupts, DoubleRaiseInterrupt) {
-       InterruptBus<IRQ> ib;
+       IRQInterruptBus ib;
        ExposedEmitter<IRQ> ee_a;
        ExposedEmitter<IRQ> ee_b;
 
@@ -67,7 +67,7 @@ TEST(Interrupts, DoubleRaiseInterrupt) {
 }
 
 TEST(Interrupts, DoubleRaiseReleaseInterrupt) {
-       InterruptBus<IRQ> ib;
+       IRQInterruptBus ib;
        ExposedEmitter<IRQ> ee_a;
        ExposedEmitter<IRQ> ee_b;
 
@@ -82,5 +82,25 @@ TEST(Interrupts, DoubleRaiseReleaseInterrupt) {
        ee_a.e_release();
        EXPECT_TRUE(ib.is_asserted());
        ee_b.e_release();
+       EXPECT_FALSE(ib.is_asserted());
+}
+
+
+TEST(Interrupts, EdgeTriggering) {
+       NMIInterruptBus ib;
+       ExposedEmitter<NMI> ee_a;
+       ExposedEmitter<NMI> ee_b;
+
+       ib.add_slave(&ee_a);
+       ib.add_slave(&ee_b);
+
+       EXPECT_FALSE(ib.is_asserted());
+       ee_a.e_raise();
+       EXPECT_TRUE(ib.is_asserted());
+       ee_b.e_raise();
+       EXPECT_FALSE(ib.is_asserted()); // Bus went from HIGH, to LOW, to LOW, so no edge
+       ee_b.e_release();
+       EXPECT_FALSE(ib.is_asserted());
+       ee_a.e_release();
        EXPECT_FALSE(ib.is_asserted());
 }
