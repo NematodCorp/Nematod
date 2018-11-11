@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include <array>
 
-#include "address_space.hpp"
+#include "memory.hpp"
 
 class PPU;
 

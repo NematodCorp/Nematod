@@ -27,9 +27,3 @@ class IRQInterruptBus : public IRQInterruptBus_interface, public InterruptBus_Ct
 public:
        virtual bool is_asserted() override;
 };
-
-template class InterruptBus_CtrlBlock<NMI>;
-template class InterruptBus_CtrlBlock<IRQ>;
-
-template class InterruptEmitter<NMI>;
-template class InterruptEmitter<IRQ>;

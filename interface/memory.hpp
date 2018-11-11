@@ -59,10 +59,10 @@ template<std::size_t t_size>
 class ROM : public MemoryInterfaceable {
 public:
        ROM(const std::istream* strm) : MemoryInterfaceable(t_size) {strm->read(m_internal.data(), t_size);
-                                            if(strm->gcount() != t_size){throw std::runtime_error("Couldn't read \"size\" characters");}};
+                                            if(strm->gcount() != t_size){throw std::runtime_error("Couldn't read \"t_size\" characters");}};
 
        virtual data  read(address offset) {return m_internal.at(offset);};
                void write(address offset, data value) {throw std::logic_error("Cannot write to ROM");};
 private:
-       std::array<data, size> m_internal;
+       std::array<data, t_size> m_internal;
 };

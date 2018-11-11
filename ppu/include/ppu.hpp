@@ -25,7 +25,7 @@ SOFTWARE.
 #ifndef PPU_HPP
 #define PPU_HPP
 
-#include "address_space.hpp"
+#include "memory.hpp"
 
 class PPU
 {

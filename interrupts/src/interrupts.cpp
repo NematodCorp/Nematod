@@ -39,3 +39,9 @@ bool IRQInterruptBus::is_asserted() {
 
        return bus_state;
 }
+
+template class InterruptBus_CtrlBlock<NMI>;
+template class InterruptBus_CtrlBlock<IRQ>;
+
+template class InterruptEmitter<NMI>;
+template class InterruptEmitter<IRQ>;

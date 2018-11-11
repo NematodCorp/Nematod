@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 
 #include "clock/include/clock.hpp"
-#include "interface/clock.hpp"
 
 TEST(Clock, AddRemoveReceiver) {
        MasterClock s;
