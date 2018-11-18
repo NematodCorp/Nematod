@@ -32,6 +32,7 @@ SOFTWARE.
 void cpu6502::adc(uint16_t addr)
 {
     uint8_t value = read(addr);
+    cycle();
 
     uint8_t result8 = 0;
     if (!decimal())
@@ -58,7 +59,7 @@ void cpu6502::adc(uint16_t addr)
         set_carry(bcd_carry);
         result8 = hi | (lo&0xF);
 
-        m_cycles++;
+        cycles++;
     }
 
     set_overflow(~(state.a ^ value) & (state.a ^ result8) & 0x80);
@@ -70,6 +71,7 @@ void cpu6502::adc(uint16_t addr)
 void cpu6502::sbc(uint16_t addr)
 {
     uint8_t value = read(addr);
+    cycle();
 
     uint8_t result8 = 0;
     if (!decimal())
@@ -98,7 +100,7 @@ void cpu6502::sbc(uint16_t addr)
         set_carry(bcd_carry);
         result8 = hi | (lo&0xF);
 
-        m_cycles++;
+        cycles++;
     }
 
     set_overflow((state.a ^ value) & (state.a ^ result8) & 0x80);
@@ -109,7 +111,7 @@ void cpu6502::sbc(uint16_t addr)
 
 void cpu6502::and_(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
 
     state.a &= val;
 
@@ -118,14 +120,15 @@ void cpu6502::and_(uint16_t addr)
 
 void cpu6502::asl(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
     set_carry(val & 0x80); // bit 7
 
     val <<= 1;
 
     test_zn(val);
 
-    write(addr, val);
+    write(addr, val); cycle();
 }
 
 void cpu6502::asla()
@@ -166,7 +169,7 @@ void cpu6502::beq(uint16_t addr)
 
 void cpu6502::bit(uint16_t addr)
 {
-    uint8_t memory = read(addr);
+    uint8_t memory = read(addr); cycle();
     uint8_t value = state.a & memory;
     test_zn(value);
     set_overflow(bit_get(memory, 6));
@@ -247,7 +250,7 @@ void cpu6502::sei()
 
 void cpu6502::cmp(uint16_t addr)
 {
-    uint8_t memory = read(addr);
+    uint8_t memory = read(addr); cycle();
     uint8_t result = state.a - memory;
 
     set_carry(state.a >= memory);
@@ -255,7 +258,7 @@ void cpu6502::cmp(uint16_t addr)
 }
 void cpu6502::cpx(uint16_t addr)
 {
-    uint8_t memory = read(addr);
+    uint8_t memory = read(addr); cycle();
     uint8_t result = state.x - memory;
 
     set_carry(state.x >= memory);
@@ -263,7 +266,7 @@ void cpu6502::cpx(uint16_t addr)
 }
 void cpu6502::cpy(uint16_t addr)
 {
-    uint8_t memory = read(addr);
+    uint8_t memory = read(addr); cycle();
     uint8_t result = state.y - memory;
 
     set_carry(state.y >= memory);
@@ -272,12 +275,13 @@ void cpu6502::cpy(uint16_t addr)
 
 void cpu6502::inc(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
     ++val;
 
     test_zn(val);
 
-    write(addr, val);
+    write(addr, val); cycle();
 }
 void cpu6502::inx()
 {
@@ -300,12 +304,13 @@ void cpu6502::inca()
 
 void cpu6502::dec(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
     --val;
 
     test_zn(val);
 
-    write(addr, val);
+    write(addr, val); cycle();
 }
 void cpu6502::dex()
 {
@@ -328,7 +333,7 @@ void cpu6502::deca()
 
 void cpu6502::eor(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
 
     state.a ^= val;
 
@@ -336,7 +341,7 @@ void cpu6502::eor(uint16_t addr)
 }
 void cpu6502::ora(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
 
     state.a |= val;
 
@@ -354,8 +359,8 @@ void cpu6502::ind_jmp(uint16_t addr)
     {
         // fixed on later variants
         state.pc = 0;
-        state.pc  = read(addr);
-        state.pc |= read(addr+1) << 8;
+        state.pc  = read(addr);         cycle();
+        state.pc |= read(addr+1) << 8;  cycle();
     }
     else
     {
@@ -364,8 +369,8 @@ void cpu6502::ind_jmp(uint16_t addr)
         uint8_t  offset = addr & 0xFF;
 
         state.pc = 0;
-        state.pc  = read(page + offset);
-        state.pc |= read(page + (offset+1)) << 8;
+        state.pc  = read(page + offset); cycle();
+        state.pc |= read(page + (offset+1)) << 8; cycle();
     }
 }
 
@@ -377,37 +382,38 @@ void cpu6502::jsr(uint16_t addr)
     push(ret&0xFF);
 
     state.pc = addr;
+    cycle();
 }
 void cpu6502::lda(uint16_t addr)
 {
-    state.a = read(addr);
+    state.a = read(addr); cycle();
     test_zn(state.a);
 }
 void cpu6502::ldx(uint16_t addr)
 {
-    state.x = read(addr);
+    state.x = read(addr); cycle();
     test_zn(state.x);
 }
 void cpu6502::ldy(uint16_t addr)
 {
-    state.y = read(addr);
+    state.y = read(addr); cycle();
     test_zn(state.y);
 }
 void cpu6502::sta(uint16_t addr)
 {
-    write(addr, state.a);
+    write(addr, state.a); cycle();
 }
 void cpu6502::stx(uint16_t addr)
 {
-    write(addr, state.x);
+    write(addr, state.x); cycle();
 }
 void cpu6502::sty(uint16_t addr)
 {
-    write(addr, state.y);
+    write(addr, state.y); cycle();
 }
 void cpu6502::stz(uint16_t addr)
 {
-    write(addr, 0);
+    write(addr, 0); cycle();
 }
 void cpu6502::lsra()
 {
@@ -419,14 +425,15 @@ void cpu6502::lsra()
 }
 void cpu6502::lsr(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
     set_carry(val & 1);
 
     val >>= 1;
 
     test_zn(val);
 
-    write(addr, val);
+    write(addr, val); cycle();
 }
 void cpu6502::rola()
 {
@@ -440,7 +447,8 @@ void cpu6502::rola()
 }
 void cpu6502::rol(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
 
     bool old_carry = carry();
     set_carry(bit_get(val, 7));
@@ -450,7 +458,7 @@ void cpu6502::rol(uint16_t addr)
 
     test_zn(val);
 
-    write(addr, val);
+    write(addr, val); cycle();
 }
 void cpu6502::rora()
 {
@@ -464,7 +472,8 @@ void cpu6502::rora()
 }
 void cpu6502::ror(uint16_t addr)
 {
-    uint8_t val = read(addr);
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
 
     bool old_carry = carry();
     set_carry(bit_get(val, 0));
@@ -474,7 +483,7 @@ void cpu6502::ror(uint16_t addr)
 
     test_zn(val);
 
-    write(addr, val);
+    write(addr, val); cycle();
 }
 
 void cpu6502::nop()
@@ -487,6 +496,7 @@ void cpu6502::pha()
 }
 void cpu6502::pla()
 {
+    cycle();
     state.a = pop();
     test_zn(state.a);
 }
@@ -496,6 +506,7 @@ void cpu6502::phx()
 }
 void cpu6502::plx()
 {
+    cycle();
     state.x = pop();
     test_zn(state.x);
 }
@@ -505,6 +516,7 @@ void cpu6502::phy()
 }
 void cpu6502::ply()
 {
+    cycle();
     state.y = pop();
     test_zn(state.y);
 }
@@ -521,6 +533,7 @@ void cpu6502::php()
 }
 void cpu6502::plp()
 {
+    cycle();
     state.flags = pop() | 0b100000; // set bit 5
     m_int_delay = true;
 }
@@ -538,6 +551,7 @@ void cpu6502::smb(uint8_t bit, uint8_t zp_addr)
 }
 void cpu6502::rti()
 {
+    cycle(); // increment S
     state.flags = (pop() & ~0b10000) | 0b100000; // clear BRK flag and set bit 5
 
     uint8_t low  = pop();
@@ -546,9 +560,10 @@ void cpu6502::rti()
 }
 void cpu6502::rts()
 {
+    cycle(); // <=> increment S
     uint8_t low  = pop();
     uint8_t high = pop();
-    state.pc = ((high << 8) | low) + 1;
+    state.pc = ((high << 8) | low) + 1; cycle();
 }
 void cpu6502::trb(uint16_t addr)
 {

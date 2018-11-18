@@ -27,6 +27,7 @@ SOFTWARE.
 
 /** Configuration constants **/
 #define CPU6502_FLAVOR MOS6502 // Choose the cpu type
+#define CPU6502_CYCLE_ACTION()
 /** *********************** **/
 
 #include <cstdint>
@@ -44,6 +45,9 @@ enum cpu_type
 
 #ifndef CPU6502_FLAVOR
 #define CPU6502_FLAVOR MOS6502
+#endif
+#ifndef CPU6502_CYCLE_ACTION
+#define CPU6502_CYCLE_ACTION()
 #endif
 
 class cpu6502
@@ -65,7 +69,6 @@ public:
     void raise_nmi();
     void reset();
 
-    unsigned cycles () const { return m_cycles;  }
     bool     stopped() const { return m_stopped; }
 
     void run(unsigned steps);
@@ -79,6 +82,7 @@ public:
         uint16_t pc;
     }
     state;
+    unsigned cycles { 0 };
 
     enum Flags
     {
@@ -101,6 +105,8 @@ public: /* private */
     { if (log_clbk) log_clbk(str); }
 
 private:
+    uint8_t fetch_opcode();
+
     bool carry() const
     { return state.flags & Carry; }
     bool zero() const
@@ -164,8 +170,19 @@ public: /* private */
         BitRelative,
         BitZP,
 
-        AddrModesCount
+        AddrModesCount,
+
+        AbsoluteXWrite,
+        AbsoluteYWrite,
+        IndZeroYWrite
     };
+
+
+    void cycle()
+    {
+        CPU6502_CYCLE_ACTION();
+        ++cycles;
+    }
 
     template<enum AddrModes>
     uint16_t addr_mode_get();
@@ -256,7 +273,6 @@ private:
     bool m_nmi_pending { false };
     bool m_int_delay   { false };
     bool m_wait_interrupt { false };
-    unsigned m_cycles { 0 };
 };
 
 #endif // CPU65C02_HPP

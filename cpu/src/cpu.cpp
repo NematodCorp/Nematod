@@ -36,26 +36,22 @@ void cpu6502::pull_irq_low()
 {
     if (interrupts_enabled())
     {
-        if (m_int_delay) // if the last instruction acted on the I flag, manually step to ensure the next one is executed before the isr
-        {
-            run(1);
-        }
-
-        switch_to_isr(0xFFFE);
+        m_irq_pending = true;
     }
-    m_wait_interrupt = false;
+    if constexpr (flavor == cpu_type::WDC65c02)
+    {
+        m_wait_interrupt = false;
+    }
 }
 
 void cpu6502::raise_nmi()
 {
-    if (m_int_delay) // if the last instruction acted on the I flag, manually step to ensure the next one is executed before the isr
+    m_nmi_pending = true;
+
+    if constexpr (flavor == cpu_type::WDC65c02)
     {
-        run(1);
+        m_wait_interrupt = false;
     }
-
-    switch_to_isr(0xFFFA);
-
-    m_wait_interrupt = false;
 }
 
 void cpu6502::reset()
@@ -76,20 +72,42 @@ void cpu6502::run(unsigned steps)
 {
     for (size_t i { 0 }; i < steps; ++i)
     {
-        if (m_stopped || m_wait_interrupt)
+        if constexpr (flavor == cpu_type::WDC65c02) // other versions don't have STP and WAI
         {
-            return;
+            if (stopped() || m_wait_interrupt)
+            {
+                return;
+            }
         }
 
         m_int_delay = false;
 
-        uint8_t opcode = read(state.pc++);
+        uint8_t opcode = fetch_opcode();
+        cycle(); // first cycle : read opcode, increment PC
 
         auto operation = opcodes[opcode];
         operation(*this);
 
-        m_cycles += 2;
+        // check interrupts
+        if (!m_int_delay)
+        {
+            if (m_nmi_pending)
+            {
+                m_nmi_pending = false;
+                switch_to_isr(0xFFFA);
+            }
+            if (m_irq_pending)
+            {
+                m_irq_pending = false;
+                switch_to_isr(0xFFFE);
+            }
+        }
     }
+}
+
+uint8_t cpu6502::fetch_opcode()
+{
+    return read(state.pc++);
 }
 
 void cpu6502::switch_to_isr(uint16_t vector, bool brk)
@@ -112,23 +130,24 @@ void cpu6502::switch_to_isr(uint16_t vector, bool brk)
     }
 
     uint16_t new_pc = 0;
-    new_pc  = read(vector  ); set_int_disable(true);
-    new_pc |= read(vector+1) << 8;
+    new_pc  = read(vector  ); set_int_disable(true); cycle();
+    new_pc |= read(vector+1) << 8;                   cycle();
 
     state.pc = new_pc;
 }
 
 void cpu6502::branch_on(int8_t disp, bool cond)
 {
+    cycle();
     if (cond)
     {
         uint16_t addr = state.pc + disp;
 
         if ((addr&0xFF00) != (state.pc&0xFF00)) // diff page
         {
-            m_cycles += 1;
+            cycle();
         }
-        m_cycles += 1;
+        cycle();
 
         state.pc = addr;
     }
@@ -138,12 +157,16 @@ void cpu6502::push(uint8_t val)
 {
     write(0x100 + state.sp, val);
     --state.sp;
+
+    cycle();
 }
 
 uint8_t cpu6502::pop()
 {
     ++state.sp;
     uint8_t val = read(0x100 + state.sp);
+
+    cycle();
 
     return val;
 }

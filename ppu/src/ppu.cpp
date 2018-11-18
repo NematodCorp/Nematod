@@ -1,7 +1,7 @@
 /*
-ppu.hpp
+ppu.cpp
 
-Copyright (c) 11 Yann BOUCHER (yann)
+Copyright (c) 17 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,44 +22,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef PPU_HPP
-#define PPU_HPP
 
-#include <cstdint>
+#include "ppu.hpp"
+
+void PPU::oam_dma(const std::array<uint8_t, 256> &data)
+{
+    std::copy(data.begin(), data.end(), m_oam_memory.begin());
+}
 
 #include <array>
+#include <cstdint>
 
-#include "memory.hpp"
-
-class PPU
+template <void(*Func)()>
+void exec()
 {
-    friend class PPUCtrlRegs;
+    Func();
+}
 
-public:
-    AddressSpace addr_space;
+void oy()
+{
 
-private:
-    void set_ctrl(uint8_t val);
-    void set_mask(uint8_t mask);
+}
 
-    uint8_t ctrl() const;
-
-    bool in_vblank() const;
-    bool sprite_0_hit() const;
-    bool sprite_overflow() const;
-
-    uint8_t read(uint8_t addr);
-    void    write(uint8_t addr, uint8_t val);
-
-    uint8_t oam_read(uint8_t addr);
-    void    oam_write(uint8_t addr, uint8_t val);
-
-    void    oam_dma(const std::array<uint8_t, 256>& data);
-
-    void    fine_scroll(uint8_t x, uint8_t y);
-
-private:
-    std::array<uint8_t, 256> m_oam_memory;
-};
-
-#endif // PPU_HPP
+void bob()
+{
+    exec<oy>();
+}

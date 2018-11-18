@@ -31,20 +31,20 @@ SOFTWARE.
 
 #include "detail/rom_loader.hpp"
 
-std::array<uint8_t, 0x10000> mem;
+static std::array<uint8_t, 0x10000> mem;
 
-uint8_t cpu6502_read(uint16_t addr)
+static uint8_t cpu6502_read(uint16_t addr)
 {
     return mem[addr];
 }
 
-void cpu6502_write(uint16_t addr, uint8_t val)
+static void cpu6502_write(uint16_t addr, uint8_t val)
 {
     mem[addr] = val;
 }
 
 
-void log(const char* str)
+static void log(const char* str)
 {
     fprintf(stderr, "%s", str);
 }

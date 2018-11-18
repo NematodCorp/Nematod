@@ -56,12 +56,18 @@ std::array<PPUCtrlRegs::write_callback, 8> PPUCtrlRegs::m_write_clbks =
 data PPUCtrlRegs::read(address ptr)
 {
     assert(ptr < 8);
+
+    // TODO : synchronize
+
     return (this->*m_read_clbks[ptr])();
 }
 
 void PPUCtrlRegs::write(address ptr, data value)
 {
     assert(ptr < 8);
+
+    // TODO : synchronize
+
     (this->*m_write_clbks[ptr])(value);
 }
 
@@ -134,6 +140,14 @@ uint8_t PPUCtrlRegs::data_read()
 void PPUCtrlRegs::ctrl_write(uint8_t val)
 {
     m_ppu.set_ctrl(val);
+    if (bit_get(m_ppu.ctrl(), 2) == 0)
+    {
+        m_addr++;
+    }
+    else
+    {
+        m_addr += 32;
+    }
 }
 
 void PPUCtrlRegs::mask_write(uint8_t val)
