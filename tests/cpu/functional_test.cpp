@@ -67,10 +67,10 @@ TEST(Cpu, FunctionalInstructionTest)
     {
         FAIL() << "6502 test rom failure at pc = 0x" << std::hex << std::setfill('0') << std::setw(4) << cpu.state.pc << "\n" <<
                   "CPU State : \n" << std::hex << std::setfill('0') << std::setw(2) <<
-                    "\tpc = 0x" << (int)cpu.state.pc << "\n" <<
-                    "\ta  = 0x" << (int)cpu.state.a << ", x = 0x" << (int)cpu.state.x << ", y = 0x" << (int)cpu.state.y << "\n" <<
-                    "\tflags = 0x" << (int)cpu.state.flags << "\n" <<
-                    "\tsp = 0x" << (int)cpu.state.sp << " (*sp = 0x" << (int)mem[0x100 + cpu.state.sp] << ")\n" <<
+                  "\tpc = 0x" << (int)cpu.state.pc << "\n" <<
+                  "\ta  = 0x" << (int)cpu.state.a << ", x = 0x" << (int)cpu.state.x << ", y = 0x" << (int)cpu.state.y << "\n" <<
+                  "\tflags = 0x" << (int)cpu.state.flags << "\n" <<
+                  "\tsp = 0x" << (int)cpu.state.sp << " (*sp = 0x" << (int)mem[0x100 + cpu.state.sp] << ")\n" <<
                   "Check file 'roms/6502_functional_test.lst' at $pc for more information about the failure reason\n";
     }
 }

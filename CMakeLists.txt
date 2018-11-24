@@ -20,15 +20,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Werror=return-type -Og -g")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Og -g")
 
 include_directories(.)
 
+add_subdirectory(external/libaco) # coroutine support
+
 SUBDIRLIST(LIBS ${CMAKE_SOURCE_DIR})
+list(REMOVE_ITEM LIBS external)
 list(REMOVE_ITEM LIBS tests)
 list(REMOVE_ITEM LIBS build)
 list(REMOVE_ITEM LIBS bin)
 list(REMOVE_ITEM LIBS .git)
 list(REMOVE_ITEM LIBS interface)
+
 include_directories(${CMAKE_SOURCE_DIR})
 
 FOREACH(lib ${LIBS})

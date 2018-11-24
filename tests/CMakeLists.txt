@@ -9,6 +9,6 @@ link_directories(${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
 file(COPY "cpu/roms/6502_functional_test.bin" DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/roms")
 
 add_executable(tests ${test_files})
-target_link_libraries(tests gtest_main gtest rt pthread ${LIBS})
+target_link_libraries(tests gtest_main gtest rt pthread libaco ${LIBS})
 
 add_test(unit_tests tests.out)
