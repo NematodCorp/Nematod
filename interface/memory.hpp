@@ -40,8 +40,8 @@ template<std::size_t t_size>
 class RAM : public MemoryInterfaceable {
 public:
        RAM() : MemoryInterfaceable(t_size) {};
-       virtual data  read(address offset) override {return m_internal.at(offset);};
-       virtual void write(address offset, data value) override {m_internal.at(offset) = value;};
+       virtual data  read(address offset) override {return m_internal[offset];};
+       virtual void write(address offset, data value) override {m_internal[offset] = value;};
 protected:
        std::array<data, t_size> m_internal;
 };
@@ -58,11 +58,10 @@ protected:
 template<std::size_t t_size>
 class ROM : public MemoryInterfaceable {
 public:
-       ROM(const std::istream* strm) : MemoryInterfaceable(t_size) {strm->read(m_internal.data(), t_size);
-                                            if(strm->gcount() != t_size){throw std::runtime_error("Couldn't read \"t_size\" characters");}};
+    ROM() : MemoryInterfaceable(t_size) {}
 
-       virtual data  read(address offset) {return m_internal.at(offset);};
+       virtual data  read(address offset) {return data[offset];};
                void write(address offset, data value) {throw std::logic_error("Cannot write to ROM");};
-private:
-       std::array<data, t_size> m_internal;
+public:
+       std::array<data, t_size> data;
 };

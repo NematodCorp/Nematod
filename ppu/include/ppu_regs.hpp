@@ -79,11 +79,7 @@ private:
     PPU& m_ppu;
     uint8_t m_oam_addr = 0;
 
-    bool m_mid_scroll_write = false;
-    uint8_t m_scroll_x = 0;
-
-    bool m_mid_addr_write = false;
-    uint16_t m_addr = 0;
+    bool m_w = false;
 };
 
 #endif // PPU_REGS_HPP

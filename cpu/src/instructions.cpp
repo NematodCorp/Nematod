@@ -26,6 +26,7 @@ SOFTWARE.
 #include "cpu.hpp"
 
 #include <cstdio>
+#include <cassert>
 
 #include "common/bitops.hpp"
 
@@ -369,8 +370,8 @@ void cpu6502::ind_jmp(uint16_t addr)
         uint8_t  offset = addr & 0xFF;
 
         state.pc = 0;
-        state.pc  = read(page + offset); cycle();
-        state.pc |= read(page + (offset+1)) << 8; cycle();
+        state.pc  = read(page + offset);                   cycle();
+        state.pc |= read(page + (uint8_t)(offset+1)) << 8; cycle();
     }
 }
 
@@ -487,6 +488,10 @@ void cpu6502::ror(uint16_t addr)
 }
 
 void cpu6502::nop()
+{
+}
+
+void cpu6502::nop2(uint16_t)
 {
 }
 
@@ -621,6 +626,256 @@ void cpu6502::wai()
      *  The interrupt handler is effectively inline code, rather than a separate routine, and thus it does not end with an RTI,
      * resulting in fewer cycles needed to handle the interrupt. */
     m_wait_interrupt = true;
+}
+
+void cpu6502::alr(uint16_t addr)
+{
+    state.a &= read(addr); cycle();
+
+    set_carry(state.a & 1);
+
+    state.a >>= 1;
+
+    test_zn(state.a);
+}
+
+void cpu6502::anc(uint16_t addr)
+{
+    state.a &= read(addr); cycle();
+    test_zn(state.a);
+    set_carry(state.flags & Flags::Neg);
+}
+
+void cpu6502::arr(uint16_t addr)
+{
+    bool old_carry = carry();
+
+    state.a &= read(addr); cycle();
+
+    state.a >>= 1;
+    bit_change(state.a, old_carry, 7);
+
+    test_zn(state.a);
+    set_carry((state.a >> 6) & 1);
+    set_overflow(((state.a >> 6) & 1) ^ ((state.a >> 5) & 1));
+}
+
+void cpu6502::axs(uint16_t addr)
+{
+    int new_x = (state.x & state.a) - read(addr); cycle();
+
+    set_carry(new_x >= 0);
+
+    state.x = new_x & 0xFF;
+
+    test_zn(state.x);
+}
+
+void cpu6502::lax(uint16_t addr)
+{
+    state.a = read(addr); cycle();
+    state.x = state.a;
+    test_zn(state.a);
+}
+
+void cpu6502::sax(uint16_t addr)
+{
+    write(addr, state.a & state.x); cycle();
+}
+
+void cpu6502::dcp(uint16_t addr)
+{
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
+    --val;
+
+    uint8_t result = state.a - val;
+
+    set_carry(state.a >= val);
+    test_zn(result);
+
+    write(addr, val); cycle();
+}
+
+void cpu6502::isc(uint16_t addr)
+{
+    uint8_t value = read(addr); cycle();
+    write(addr, value); cycle(); // dummy write
+    ++value;
+
+    uint8_t result8 = 0;
+    if (!decimal())
+    {
+        int16_t result16 = (int16_t)state.a - value - !carry();
+        set_carry(result16 >= 0);
+        result8  = result16 & 0xFF;
+    }
+    else // BCD Mode
+    {
+        value = 0x99 - value;
+
+        uint8_t  lo = (state.a & 0xF ) + (value & 0xF ) + carry();
+        uint16_t hi = (state.a & 0xF0) + (value & 0xF0);
+        bool bcd_carry = false;
+        if (lo > 0x9)
+        {
+            lo -= 0x0A;
+            hi += 0x10;
+        }
+        if (hi > 0x90)
+        {
+            hi -= 0xA0;
+            bcd_carry = true;
+        }
+        set_carry(bcd_carry);
+        result8 = hi | (lo&0xF);
+
+        cycles++;
+    }
+
+    set_overflow((state.a ^ value) & (state.a ^ result8) & 0x80);
+    state.a = result8;
+
+    test_zn(state.a);
+    write(addr, value); cycle();
+}
+
+void cpu6502::rla(uint16_t addr)
+{
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
+
+    bool old_carry = carry();
+    set_carry(bit_get(val, 7));
+
+    val <<= 1;
+    bit_change(val, old_carry, 0);
+
+    state.a &= val;
+
+    test_zn(state.a);
+
+    write(addr, val); cycle();
+}
+
+void cpu6502::rra(uint16_t addr)
+{
+    uint8_t value = read(addr); cycle();
+    write(addr, value); cycle(); // dummy write
+
+    bool old_carry = carry();
+    set_carry(bit_get(value, 0));
+
+    value >>= 1;
+    bit_change(value, old_carry, 7);
+
+    test_zn(value);
+
+    write(addr, value); cycle();
+
+    uint8_t result8 = 0;
+    if (!decimal())
+    {
+        uint16_t result16 = (uint16_t)state.a + value + carry();
+        set_carry(result16 > 255);
+        result8  = result16 & 0xFF;
+    }
+    else // BCD Mode
+    {
+        uint8_t  lo = (value & 0xF ) + (state.a & 0xF ) + carry();
+        uint16_t hi = (value & 0xF0) + (state.a & 0xF0);
+        bool bcd_carry = false;
+        if (lo > 0x9)
+        {
+            lo -= 0x0A;
+            hi += 0x10;
+        }
+        if (hi > 0x90)
+        {
+            hi -= 0xA0;
+            bcd_carry = true;
+        }
+        set_carry(bcd_carry);
+        result8 = hi | (lo&0xF);
+
+        cycles++;
+    }
+
+    set_overflow(~(state.a ^ value) & (state.a ^ result8) & 0x80);
+    test_zn(result8);
+
+    state.a = result8;
+}
+
+void cpu6502::slo(uint16_t addr)
+{
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
+    set_carry(val & 0x80); // bit 7
+
+    val <<= 1;
+
+    state.a |= val;
+
+    test_zn(state.a);
+
+    write(addr, val); cycle();
+}
+
+void cpu6502::sre(uint16_t addr)
+{
+    uint8_t val = read(addr); cycle();
+    write(addr, val); cycle(); // dummy write
+    set_carry(val & 1);
+
+    val >>= 1;
+
+    state.a ^= val;
+
+    test_zn(state.a);
+
+    write(addr, val); cycle();
+}
+
+void cpu6502::atx(uint16_t addr)
+{
+    state.a = read(addr); cycle();
+    state.x = state.a;
+    test_zn(state.a);
+}
+
+void cpu6502::say(uint16_t addr)
+{
+    // what a weird instruction
+
+    uint8_t val = ((addr >> 8) + 1) & state.y;
+    if ((addr&0xFF) + state.x >= 0x100) // page crossed
+    {
+        uint8_t high = (addr + state.x) & (state.y << 8);
+        uint8_t low  = (addr + state.x) & 0xFF;
+        write(high | low, val); cycle();
+    }
+    else
+    {
+        write(addr + state.x, val); cycle();
+    }
+}
+
+void cpu6502::xas(uint16_t addr)
+{
+    // what a weird instruction
+
+    uint8_t val = ((addr >> 8) + 1) & state.x;
+    if ((addr&0xFF) + state.y >= 0x100) // page crossed
+    {
+        uint8_t high = (addr + state.y) & (state.x << 8);
+        uint8_t low  = (addr + state.y) & 0xFF;
+        write(high | low, val); cycle();
+    }
+    else
+    {
+        write(addr + state.y, val); cycle();
+    }
 }
 
 void cpu6502::invalid_opcode()

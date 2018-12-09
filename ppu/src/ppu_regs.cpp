@@ -73,13 +73,12 @@ void PPUCtrlRegs::write(address ptr, data value)
 
 uint8_t PPUCtrlRegs::status_read()
 {
-    uint8_t byte = 0;
+    m_w = false; // clear w
 
-    bit_change(byte, m_ppu.in_vblank(),       7);
-    bit_change(byte, m_ppu.sprite_0_hit(),    6);
-    bit_change(byte, m_ppu.sprite_overflow(), 5);
+    uint8_t status = m_ppu.m_status;
 
-    return byte;
+    bit_clear(m_ppu.m_status, PPU::VerticalBlank); // reset vblank flag
+    return status;
 }
 
 uint8_t PPUCtrlRegs::oam_data_read()
@@ -100,59 +99,81 @@ void PPUCtrlRegs::oam_data_write(uint8_t val)
 
 void PPUCtrlRegs::scroll_write(uint8_t val)
 {
-    if (!m_mid_scroll_write)
+    if (!m_w)
     {
-        m_scroll_x = val;
-        m_mid_scroll_write = true;
+        m_ppu.m_t &= ~0b11111;
+        m_ppu.m_t |= val>>3;
+
+        m_ppu.m_x = val&0b111;
+        m_w = true;
     }
     else
     {
-        uint8_t scroll_y = val;
-        m_ppu.fine_scroll(m_scroll_x, scroll_y);
-        m_mid_scroll_write = false;
+        m_ppu.m_t &= ~0b1110011'11100000;
+        m_ppu.m_t |= ((uint16_t)(val&0b111))<<12;
+        m_ppu.m_t |= ((uint16_t)(val&0b11111000))<<2;
+
+        m_w = false;
     }
 }
 
 void PPUCtrlRegs::addr_write(uint8_t val)
 {
-    if (!m_mid_addr_write)
+    if (!m_w)
     {
-        m_addr = (val << 8); // upper byte first
-        m_mid_addr_write = true;
+        m_ppu.m_t &= ~0b1111111'00000000;
+        m_ppu.m_t |= ((uint16_t)(val&0b01111111))<<8;
+        m_w = true;
     }
     else
     {
-        m_addr |= val;
-        m_mid_addr_write = false;
+        m_ppu.m_t |= val;
+        m_ppu.m_v = m_ppu.m_t;
+        m_w = false;
     }
 }
 
 void PPUCtrlRegs::data_write(uint8_t val)
 {
-    m_ppu.write(m_addr, val);
+    m_ppu.addr_space.write(m_ppu.m_v, val);
+    // FIXME : incorrect behavior during rendering
+    if (m_ppu.m_ctrl & PPU::VRAMIncrement32)
+    {
+        m_ppu.m_v += 32;
+    }
+    else
+    {
+        m_ppu.m_v++;
+    }
 }
 
 uint8_t PPUCtrlRegs::data_read()
 {
-    return m_ppu.read(m_addr);
+    return m_ppu.addr_space.read(m_ppu.m_v);
+    // FIXME : incorrect behavior during rendering
+    if (m_ppu.m_ctrl & PPU::VRAMIncrement32)
+    {
+        m_ppu.m_v += 32;
+    }
+    else
+    {
+        m_ppu.m_v++;
+    }
 }
 
 void PPUCtrlRegs::ctrl_write(uint8_t val)
 {
-    m_ppu.set_ctrl(val);
-    if (bit_get(m_ppu.ctrl(), 2) == 0)
-    {
-        m_addr++;
-    }
-    else
-    {
-        m_addr += 32;
-    }
+    m_ppu.m_ctrl = val;
 }
 
 void PPUCtrlRegs::mask_write(uint8_t val)
 {
-    m_ppu.set_mask(val);
+    if (val & 0b11100000) // color emphasis bits
+    {
+        assert(false); // TODO : log, report as unsupported yet
+    }
+
+    m_ppu.m_mask = val;
 }
 
 uint8_t PPUCtrlRegs::invalid_read()
@@ -162,5 +183,6 @@ uint8_t PPUCtrlRegs::invalid_read()
 
 void PPUCtrlRegs::invalid_write(uint8_t val)
 {
+    (void)val;
     assert(false); // TODO : log
 }

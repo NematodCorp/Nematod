@@ -26,7 +26,7 @@ SOFTWARE.
 #define CPU65C02_HPP
 
 /** Configuration constants **/
-#define CPU6502_FLAVOR MOS6502 // Choose the cpu type
+#define CPU6502_FLAVOR NES6502 // Choose the cpu type
 #define CPU6502_CYCLE_ACTION()
 /** *********************** **/
 
@@ -174,7 +174,9 @@ public: /* private */
 
         AbsoluteXWrite,
         AbsoluteYWrite,
-        IndZeroYWrite
+        IndZeroYWrite,
+
+        BusConflictInvalid
     };
 
 
@@ -244,6 +246,7 @@ public: /* private */
     void rola();
     void rol(uint16_t);
     void nop();
+    void nop2(uint16_t);
     void pha(); void pla();
     void phx(); void plx();
     void phy(); void ply();
@@ -262,6 +265,24 @@ public: /* private */
     void txs();
     void stp();
     void wai();
+
+    // undocumented
+    void alr(uint16_t);
+    void anc(uint16_t);
+    void arr(uint16_t);
+    void axs(uint16_t);
+    void lax(uint16_t);
+    void sax(uint16_t);
+    void dcp(uint16_t);
+    void isc(uint16_t);
+    void rla(uint16_t);
+    void rra(uint16_t);
+    void slo(uint16_t);
+    void sre(uint16_t);
+    void atx(uint16_t);
+
+    void say(uint16_t);
+    void xas(uint16_t);
 
 private:
     ReadCallback read_clbk;

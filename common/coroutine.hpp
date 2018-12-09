@@ -37,7 +37,7 @@ struct coroutine
     aco_t* co;
 };
 
-aco_t* main_coroutine { nullptr };
+inline aco_t* main_coroutine { nullptr };
 
 inline void coroutines_init()
 {

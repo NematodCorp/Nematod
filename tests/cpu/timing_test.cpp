@@ -90,10 +90,10 @@ static void log(const char* str)
     DO_TEST_8((base)+0x01, 0xFF, 6); \
     DO_TEST_8((base)+0x11, 0x00, 5); \
     DO_TEST_8((base)+0x12, 0xFE, 5); \
- \
-     \
+    \
+    \
     cpu.state.x = cpu.state.y = 0xFF; \
- \
+    \
     DO_TEST_8((base)+0x1D, 0xFF, 5); \
     DO_TEST_8((base)+0x19, 0xFF, 5); \
     DO_TEST_8((base)+0x01, 0xFE, 6); \
@@ -130,11 +130,14 @@ TEST(Cpu, TimingInstructionTest)
     DO_TEST(0xF8, 2); // sed
     DO_TEST(0x78, 2); // sei
 
-    DO_TEST(0x1A, 2); // inca
+    if constexpr (cpu6502::flavor == WDC65c02)
+    {
+        DO_TEST(0x1A, 2); // inca
+        DO_TEST(0x3A, 2); // deca
+    }
     DO_TEST(0xE8, 2); // inx
     DO_TEST(0xC8, 2); // iny
 
-    DO_TEST(0x3A, 2); // deca
     DO_TEST(0xCA, 2); // dex
     DO_TEST(0x88, 2); // dey
 
@@ -145,13 +148,17 @@ TEST(Cpu, TimingInstructionTest)
 
     DO_TEST(0x48, 3); // pha
     DO_TEST(0x08, 3); // php
-    DO_TEST(0xDA, 3); // phx
-    DO_TEST(0x5A, 3); // phy
 
     DO_TEST(0x68, 4); // pla
     DO_TEST(0x28, 4); // plp
-    DO_TEST(0xFA, 4); // plx
-    DO_TEST(0x7A, 4); // ply
+
+    if constexpr (cpu6502::flavor == WDC65c02)
+    {
+        DO_TEST(0xDA, 3); // phx
+        DO_TEST(0x5A, 3); // phy
+        DO_TEST(0xFA, 4); // plx
+        DO_TEST(0x7A, 4); // ply
+    }
 
     ALU_TEST(0x60); // adc
     ALU_TEST(0xE0); // sbc
@@ -164,11 +171,18 @@ TEST(Cpu, TimingInstructionTest)
     BRANCH_TEST(0xF0, 0b10, 0b0); // beq
     BRANCH_TEST(0xD0, 0b0, 0b10); // bne
 
-    DO_TEST_8(0x89, 0, 2); // bit imm
     DO_TEST_8(0x24, 0, 3); // bit zp
-    DO_TEST_8(0x34, 0, 4); // bit zpx
+    if constexpr (cpu6502::flavor == WDC65c02)
+    {
+        DO_TEST_8(0x34, 0, 4); // bit zpx
+    }
     DO_TEST_16(0x2C, 0, 4); // bit abs
-    DO_TEST_16(0x3C, 0, 4); // bit abx
+
+    if constexpr (cpu6502::flavor == WDC65c02)
+    {
+        DO_TEST_8(0x89, 0, 2); // bit imm
+        DO_TEST_16(0x3C, 0, 4); // bit abx
+    }
 
     BRANCH_TEST(0x30, 0b10000000, 0b0); // bmi
     BRANCH_TEST(0x10, 0b0, 0b10000000); // bpl
@@ -201,7 +215,11 @@ TEST(Cpu, TimingInstructionTest)
 
     DO_TEST_16(0x4C, 0, 3); // jmp
     DO_TEST_16(0x6C, 0, 5); // jmp ind
-    DO_TEST_16(0x7C, 0, 6); // jmp absx
+
+    if constexpr (cpu6502::flavor == WDC65c02)
+    {
+        DO_TEST_16(0x7C, 0, 6); // jmp absx
+    }
 
     ALU_TEST(0xA0); // lda
 

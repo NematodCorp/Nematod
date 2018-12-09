@@ -67,7 +67,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteX>()
     if ((addr&0xFF) + state.x >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)(addr&0xFF + state.x)); cycle();
+        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
     }
     addr += state.x;
     return addr;
@@ -80,7 +80,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteY>()
     if ((addr&0xFF) + state.y >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)(addr&0xFF + state.y)); cycle();
+        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     }
     addr += state.y;
     return addr;
@@ -91,7 +91,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteXWrite>()
     uint16_t addr  = read(state.pc++); cycle();
     addr |= read(state.pc++) << 8;     cycle();
     // do a dummy read at the invalid address
-    read(addr&0xFF00 + (uint8_t)(addr&0xFF + state.x)); cycle();
+    read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
     addr += state.x;
     return addr;
 }
@@ -101,7 +101,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteYWrite>()
     uint16_t addr  = read(state.pc++); cycle();
     addr |= read(state.pc++) << 8;     cycle();
     // do a dummy read at the invalid address
-    read(addr&0xFF00 + (uint8_t)(addr&0xFF + state.y)); cycle();
+    read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     addr += state.y;
     return addr;
 }
@@ -111,7 +111,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroX>()
     uint8_t zero_addr  = read(state.pc++);      cycle();
     read(zero_addr); zero_addr += state.x;      cycle(); // dummy read
     uint16_t addr      = read(zero_addr);       cycle();
-    addr     |= read(zero_addr+1)<<8;  cycle();
+    addr     |= read((uint8_t)(zero_addr+1))<<8;  cycle();
 
     return addr;
 }
@@ -120,11 +120,11 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroY>()
 {
     uint8_t zero_addr  = read(state.pc++);      cycle();
     uint16_t addr      = read(zero_addr);       cycle();
-    addr     |= read(zero_addr+1)<<8;  cycle();
+    addr     |= read((uint8_t)(zero_addr+1))<<8;  cycle();
     if ((addr&0xFF) + state.y >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)(addr&0xFF + state.y)); cycle();
+        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     }
     addr += state.y;
     return addr;
@@ -134,9 +134,9 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroYWrite>()
 {
     uint8_t zero_addr  = read(state.pc++);      cycle();
     uint16_t addr      = read(zero_addr);       cycle();
-    addr     |= read(zero_addr+1)<<8;  cycle();
+    addr     |= read((uint8_t)(zero_addr+1))<<8;  cycle();
     // do a dummy read at the invalid address
-    read(addr&0xFF00 + (uint8_t)(addr&0xFF + state.y)); cycle();
+    read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     addr += state.y;
     return addr;
 }
@@ -145,7 +145,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndirectZP>()
 {
     uint8_t zero_addr  = read(state.pc++); cycle();
     uint16_t addr      = read(zero_addr);  cycle();
-    addr     |= read(zero_addr+1)<<8; cycle();
+    addr     |= read((uint8_t)(zero_addr+1))<<8; cycle();
 
     return addr;
 }
@@ -163,6 +163,19 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndirectX>()
     addr |= read(state.pc++) << 8;      cycle();
     addr += state.x;                    cycle();
     return addr;
+}
+template<>
+uint16_t cpu6502::addr_mode_get<cpu6502::BusConflictInvalid>()
+{
+    uint16_t addr  = read(state.pc++); cycle();
+    addr |= read(state.pc++) << 8;     cycle();
+    if ((addr&0xFF) + state.x >= 0x100) // page crossed
+    {
+        // do a dummy read at the invalid address
+        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
+    }
+
+    return addr; // let the instruction handle the messy page crossing behavior
 }
 
 #endif // ADDR_MODES_HPP
