@@ -31,6 +31,10 @@ SOFTWARE.
 
 #include "detail/rom_loader.hpp"
 #include "nesloader.hpp"
+#include "common/parallel_stepper.hpp"
+
+namespace
+{
 
 static std::array<uint8_t, 0x10000> mem;
 
@@ -117,6 +121,16 @@ TEST(Cpu, NesTestRomTest)
 //    EXPECT_EQ(mem[0x03], 0x00);
 }
 
+static cpu6502 cpu(cpu6502_read, cpu6502_write, log);
+
+static void step_cpu()
+{
+    while (true)
+    {
+        cpu.run(1);
+    }
+}
+
 TEST(Cpu, BlarggInstrTest)
 {
     for (int i { 1 }; i <= 16; ++i)
@@ -130,7 +144,7 @@ TEST(Cpu, BlarggInstrTest)
         memcpy(mem.data() + 0x8000, cart.prg_rom.data(), 0x4000);
         memcpy(mem.data() + 0xC000, cart.prg_rom.data() + 0x4000, 0x4000);
 
-        cpu6502 cpu(cpu6502_read, cpu6502_write, log);
+        cpu.reset();
 
         mem[0x6000] = 0x80;
 
@@ -156,4 +170,6 @@ TEST(Cpu, BlarggInstrTest)
                                                                                     "Output : '" << (const char*)&mem[0x6004] << "'\n";
         }
     }
+}
+
 }

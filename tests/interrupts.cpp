@@ -2,6 +2,9 @@
 
 #include "interrupts/include/interrupts.hpp"
 
+namespace
+{
+
 template<interrupt_kind T>
 class ExposedEmitter : public InterruptEmitter<T> {
 public:
@@ -103,4 +106,6 @@ TEST(Interrupts, EdgeTriggering) {
        EXPECT_FALSE(ib.is_asserted());
        ee_a.e_release();
        EXPECT_FALSE(ib.is_asserted());
+}
+
 }

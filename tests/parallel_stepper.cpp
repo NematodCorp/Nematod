@@ -28,6 +28,9 @@ SOFTWARE.
 #include "common/parallel_stepper.hpp"
 #include "clock.hpp"
 
+namespace
+{
+
 struct coroutines_init_wrapper
 {
     coroutines_init_wrapper()
@@ -37,89 +40,29 @@ struct coroutines_init_wrapper
 };
 static coroutines_init_wrapper co_init_instance;
 
-void inc_foo()
-{
-    while (true)
-    {
-        int* val = (int*)get_co_arg();
-        ++(*val);
-        co_yield();
-    }
-}
-void inc_bar()
-{
-    while (true)
-    {
-        int* val = (int*)get_co_arg();
-        ++(*val);
-        co_yield();
-    }
-}
-
-TEST(ParallelStepper, Basic)
-{
-    ParallelStepper<inc_foo, inc_bar> stepper;
-
-    int foo_val = 0;
-    int bar_val = 0;
-    stepper.set_arg(0, &foo_val);
-    stepper.set_arg(1, &bar_val);
-
-    for (size_t i { 0 }; i < 3; ++i)
-        stepper.step();
-
-    EXPECT_EQ(foo_val, 3);
-    EXPECT_EQ(bar_val, 3);
-
-    foo_val = 0;
-
-    for (size_t i { 0 }; i < 3; ++i)
-        stepper.step();
-
-    EXPECT_EQ(foo_val, 3);
-    EXPECT_EQ(bar_val, 6);
-}
 
 template<unsigned int R>
-struct ClockCounter : public DividedClockReceiver<R> {
-    void on_active_clock() override {counter++;};
+struct StepperClockCounter : public DividedClockReceiver<R> {
+    void on_active_clock() override
+    {
+        counter++;
+        co_yield();
+    };
     unsigned int counter = 0;
 };
 
-void step_clock_foo()
-{
-    while (true)
-    {
-        auto clock = (ClockCounter<1>*)get_co_arg();
-        clock->tick();
-
-        co_yield();
-    }
-}
-void step_clock_bar()
-{
-    while (true)
-    {
-        auto clock = (ClockCounter<3>*)get_co_arg();
-        clock->tick();
-
-        co_yield();
-    }
-}
-
 TEST(ParallelStepper, Clocks)
 {
-    ClockCounter<1> foo;
-    ClockCounter<3> bar;
+    StepperClockCounter<1> foo;
+    StepperClockCounter<3> bar;
 
-    ParallelStepper<step_clock_foo, step_clock_bar> stepper;
+    ParallelStepper stepper{foo, bar};
 
-    stepper.set_arg(0, &foo);
-    stepper.set_arg(1, &bar);
-
-    for (size_t i { 0 }; i < 300; ++i)
+    for (size_t i { 0 }; i < 3000; ++i)
         stepper.step();
 
-    EXPECT_EQ(foo.counter, 300);
-    EXPECT_EQ(bar.counter, 100);
+    EXPECT_EQ(foo.counter, 3000);
+    EXPECT_EQ(bar.counter, 1000);
+}
+
 }

@@ -2,6 +2,9 @@
 
 #include "clock/include/clock.hpp"
 
+namespace
+{
+
 TEST(Clock, AddRemoveReceiver) {
        MasterClock s;
 
@@ -64,4 +67,6 @@ TEST(Clock, SynchroneousTicking) {
        EXPECT_EQ(c.counter, 1);
        EXPECT_EQ(a.counter / 2, b.counter);
        EXPECT_EQ(a.counter / 4, c.counter);
+}
+
 }

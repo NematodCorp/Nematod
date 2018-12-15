@@ -59,7 +59,7 @@ inline coroutine make_co(const coroutine_group& group, void(*func)())
 {
     return {aco_create(main_coroutine, group.stack, 64, func, nullptr)};
 }
-inline coroutine make_co(const coroutine_group& group, void(*func)(void*), void* arg)
+inline coroutine make_co(const coroutine_group& group, void(*func)(), void* arg)
 {
     return {aco_create(main_coroutine, group.stack, 64, (void(*)())func, arg)};
 }

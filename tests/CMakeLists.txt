@@ -1,4 +1,6 @@
-file(GLOB_RECURSE test_files "*.cpp" "*.hpp")
+file(GLOB test_files "*.cpp" "*.hpp")
+file(GLOB_RECURSE test_files_cpu "cpu/*.cpp" "cpu/*.hpp")
+file(GLOB_RECURSE test_files_ppu "ppu/*.cpp" "ppu/*.hpp")
 
 find_package(GTest REQUIRED)
 
@@ -10,6 +12,12 @@ file(COPY "cpu/roms" DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 file(COPY "ppu/roms" DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 add_executable(tests ${test_files})
-target_link_libraries(tests gtest_main gtest rt pthread libaco ${LIBS})
+add_executable(tests_cpu ${test_files_cpu})
+add_executable(tests_ppu ${test_files_ppu})
+target_link_libraries(tests gtest_main gtest rt pthread libaco memory interrupts clock)
+target_link_libraries(tests_cpu gtest_main gtest rt pthread memory interrupts clock nesloader cpu)
+target_link_libraries(tests_ppu gtest_main gtest rt pthread libaco memory interrupts clock nesloader cpu_cycle_co ppu)
 
 add_test(unit_tests tests.out)
+add_test(unit_tests tests_cpu.out)
+add_test(unit_tests tests_ppu.out)

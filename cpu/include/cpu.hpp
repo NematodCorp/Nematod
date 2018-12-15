@@ -25,14 +25,11 @@ SOFTWARE.
 #ifndef CPU65C02_HPP
 #define CPU65C02_HPP
 
-/** Configuration constants **/
-#define CPU6502_FLAVOR NES6502 // Choose the cpu type
-#define CPU6502_CYCLE_ACTION()
-/** *********************** **/
-
 #include <cstdint>
+#include <array>
 
 #include "common/bitops.hpp"
+#include "common/coroutine.hpp"
 
 struct OpcodeEntry;
 
@@ -54,6 +51,7 @@ class cpu6502
 {
 public:
     static constexpr cpu_type flavor = CPU6502_FLAVOR;
+    static const std::array<char[4], 256> opcode_mnemos;
 
 public:
     using ReadCallback  = uint8_t(*)(uint16_t addr);
@@ -62,7 +60,7 @@ public:
 
     cpu6502(ReadCallback in_read_clbk, WriteCallback in_write_clbk, LogCallback in_log_clbk = nullptr)
         : read_clbk(in_read_clbk), write_clbk(in_write_clbk), log_clbk(in_log_clbk)
-    { reset(); }
+    { }
 
 public:
     void pull_irq_low();

@@ -29,45 +29,62 @@ SOFTWARE.
 #include <cassert>
 
 #include "coroutine.hpp"
+#include "clock.hpp"
+
+inline void parallel_stepper_trampoline()
+{
+    while (true)
+    {
+        auto rcv = (DividedClockReceiverInterface*)get_co_arg();
+        rcv->on_active_clock();
+    }
+}
 
 using stepper_func = void(*)();
 
-template <stepper_func... Funcs>
+template <typename... ClockReceivers>
 class ParallelStepper
 {
 public:
-    ParallelStepper() noexcept
-        : m_grp(make_co_group()), m_coroutines{make_co(m_grp, Funcs)...}
+    ParallelStepper(ClockReceivers&... args) noexcept
+        : m_grp(make_co_group())
     {
-
+        unsigned idx = 0;
+        ((m_coroutines[idx++] = {make_co(m_grp, &parallel_stepper_trampoline, &args), ClockReceivers::clock_rate, 0}), ...);
     }
     ~ParallelStepper() noexcept
     {
-        for (auto& co : m_coroutines)
+        for (auto& entry : m_coroutines)
         {
-            destroy_co(co);
+            destroy_co(entry.co);
         }
         destroy_co_group(m_grp);
     }
 
 public:
-    void set_arg(size_t idx, void* arg)
-    {
-        assert(idx < sizeof...(Funcs));
-        set_co_arg(m_coroutines[idx], arg);
-    }
-
     void step() noexcept
     {
-        for (const auto& co : m_coroutines)
+        for (auto& entry : m_coroutines)
         {
-            run_co(co);
+            ++entry.cur_clock;
+            if (entry.cur_clock == entry.clock_rate)
+            {
+                entry.cur_clock = 0;
+                run_co(entry.co);
+            }
         }
     }
 
 public:
+    struct CoroutineEntry
+    {
+        coroutine co;
+        unsigned clock_rate;
+        unsigned cur_clock;
+    };
+
     coroutine_group m_grp;
-    std::array<coroutine, sizeof...(Funcs)> m_coroutines;
+    std::array<CoroutineEntry, sizeof...(ClockReceivers)> m_coroutines;
 };
 
 #endif // PARALLEL_STEPPER_HPP

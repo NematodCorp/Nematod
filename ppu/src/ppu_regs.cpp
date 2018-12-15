@@ -57,7 +57,7 @@ data PPUCtrlRegs::read(address ptr)
 {
     assert(ptr < 8);
 
-    // TODO : synchronize
+    printf("read at 0x%x\n", 0x2000 + ptr);
 
     return (this->*m_read_clbks[ptr])();
 }
@@ -66,7 +66,7 @@ void PPUCtrlRegs::write(address ptr, data value)
 {
     assert(ptr < 8);
 
-    // TODO : synchronize
+    printf("write at 0x%x\n", 0x2000 + ptr);
 
     (this->*m_write_clbks[ptr])(value);
 }

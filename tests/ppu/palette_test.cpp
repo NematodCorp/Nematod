@@ -1,27 +1,27 @@
-/*
-palette_test.cpp
+///*
+//palette_test.cpp
 
-Copyright (c) 07 Yann BOUCHER (yann)
+//Copyright (c) 07 Yann BOUCHER (yann)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files (the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
 
-*/
+//*/
 
 #include "gtest/gtest.h"
 
@@ -36,6 +36,18 @@ SOFTWARE.
 #include "ppu_regs.hpp"
 #include "memory.hpp"
 #include "nesloader.hpp"
+
+namespace
+{
+
+struct coroutines_init_wrapper
+{
+    coroutines_init_wrapper()
+    {
+        coroutines_init();
+    }
+};
+static coroutines_init_wrapper co_init_instance;
 
 AddressSpace cpu_space;
 
@@ -68,26 +80,17 @@ struct PPUReceiver : public DividedClockReceiver<4>
     };
 };
 
-CPUReceiver cpu_rcv;
-PPUReceiver ppu_rcv;
-
-void step_cpu()
-{
-    cpu_rcv.tick();
-}
-void step_ppu()
-{
-    ppu_rcv.tick();
-}
-
-RAM<0x800 > nes_ram;
-RAM<0x800 > ppu_ram;
-RAM<0x100 > palette_ram;
-ROM<0x8000> prg_rom;
-ROM<0x2000> chr_rom;
-
 TEST(Ppu, FullTest)
 {
+    CPUReceiver cpu_rcv;
+    PPUReceiver ppu_rcv;
+
+    RAM<0x800 > nes_ram;
+    RAM<0x800 > ppu_ram;
+    RAM<0x100 > palette_ram;
+    ROM<0x8000> prg_rom;
+    ROM<0x2000> chr_rom;
+
     cartdrige_data cart;
     ASSERT_NO_THROW(cart = load_nes_file("roms/full_palette.nes"));
 
@@ -102,5 +105,18 @@ TEST(Ppu, FullTest)
     ppu.addr_space.add_port(memory_port{&ppu_ram, 0x2000});
     ppu.addr_space.add_port(memory_port{&palette_ram, 0x3F00});
 
-    ParallelStepper<step_cpu, step_ppu> stepper;
+    ParallelStepper stepper{cpu_rcv, ppu_rcv};
+
+    cpu.reset();
+
+    for (size_t i { 0 }; i < 6*12; ++i)
+    {
+        printf("clock cyle n°%d\n", i);
+        stepper.step();
+    }
+
+    printf("opcode is : 0x%x:'%s' (0x%x)\n", cpu_space.read(cpu.state.pc), cpu6502::opcode_mnemos[cpu_space.read(cpu.state.pc)], cpu.state.pc);
+    printf("vector : 0x%x\n", (cpu_space.read(0xFFFC)) | (cpu_space.read(0xFFFD) << 8));
+}
+
 }

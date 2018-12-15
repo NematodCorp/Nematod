@@ -63,6 +63,7 @@ constexpr void static_for(F func)
 
 constexpr OpcodeEntry opcode_defs[] = {
     /*   name      callback    impl imm/rel zp   zpx   zpy   abs   abx   aby   izx   izy   izp   ind   iax  bitrel bitzp read? invl? corr_invl? */
+    {"nop", &cpu6502::nop ,  {0xEA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, true },
     {"adc", &cpu6502::adc ,  {0x00, 0x69, 0x65, 0x75, 0x00, 0x6d, 0x7d, 0x79, 0x61, 0x71, 0x72, 0x00, 0x00, 0x00, 0x00}, true },
     {"and", &cpu6502::and_,  {0x00, 0x29, 0x25, 0x35, 0x00, 0x2d, 0x3d, 0x39, 0x21, 0x31, 0x32, 0x00, 0x00, 0x00, 0x00}, true },
     {"asl", &cpu6502::asl,   {0x00, 0x00, 0x06, 0x16, 0x00, 0x0e, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, false},
@@ -105,7 +106,6 @@ constexpr OpcodeEntry opcode_defs[] = {
     {"ldy", &cpu6502::ldy ,  {0x00, 0xA0, 0xA4, 0xB4, 0x00, 0xAC, 0xBC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, true },
     {"lsr", &cpu6502::lsr ,  {0x00, 0x00, 0x46, 0x56, 0x00, 0x4E, 0x5E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, false },
     {"lsr", &cpu6502::lsra,  {0x4A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, true },
-    {"nop", &cpu6502::nop ,  {0xEA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, true },
     {"ora", &cpu6502::ora ,  {0x00, 0x09, 0x05, 0x15, 0x00, 0x0d, 0x1d, 0x19, 0x01, 0x11, 0x12, 0x00, 0x00, 0x00, 0x00}, true },
     {"pha", &cpu6502::pha ,  {0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, false},
     {"php", &cpu6502::php ,  {0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, false},
@@ -196,7 +196,7 @@ constexpr OpcodeEntry opcode_defs[] = {
 };
 
 template <size_t idx, size_t mode>
-constexpr opcode_callback generate_callback()
+static inline constexpr opcode_callback generate_callback()
 {
     return [](cpu6502& cpu)
     {
@@ -214,7 +214,7 @@ constexpr opcode_callback generate_callback()
 }
 
 template <size_t idx, size_t bit>
-constexpr opcode_callback generate_bit_rel_callback()
+static inline constexpr opcode_callback generate_bit_rel_callback()
 {
     return [](cpu6502& cpu)
     {
@@ -224,7 +224,7 @@ constexpr opcode_callback generate_bit_rel_callback()
     };
 }
 template <size_t idx, size_t bit>
-constexpr opcode_callback generate_bit_zp_callback()
+static inline constexpr opcode_callback generate_bit_zp_callback()
 {
     return [](cpu6502& cpu)
     {
@@ -239,7 +239,7 @@ void invalid_opcode(cpu6502& cpu)
 }
 
 template <size_t idx>
-constexpr void generate_opcode_callbacks(std::array<opcode_callback, 256>& opcodes)
+static inline constexpr void generate_opcode_callbacks(std::array<opcode_callback, 256>& opcodes)
 {
     static_for<cpu6502::AddrModesCount>([&opcodes](auto mode)
     {
@@ -247,7 +247,8 @@ constexpr void generate_opcode_callbacks(std::array<opcode_callback, 256>& opcod
         {
             if constexpr (opcode_defs[idx].illegal && cpu6502::flavor == WDC65c02)
             {
-                opcodes[op] = generate_callback<0xEA, cpu6502::Immediate>(); // generate a NOP on illegal 65c02 instructions
+                // generate a NOP (which is at index 0 of the opcode table) on illegal 65c02 instructions
+                opcodes[op] = generate_callback<0, cpu6502::Immediate>();
             }
             else
             {
@@ -298,7 +299,7 @@ constexpr void generate_opcode_callbacks(std::array<opcode_callback, 256>& opcod
     });
 }
 
-constexpr std::array<opcode_callback, 256> gen()
+static inline constexpr std::array<opcode_callback, 256> gen()
 {
     std::array<opcode_callback, 256> opcodes {};
     for (auto& el : opcodes) el = invalid_opcode;
@@ -310,4 +311,37 @@ constexpr std::array<opcode_callback, 256> gen()
     return opcodes;
 }
 
-std::array<opcode_callback, 256> opcodes = gen();
+static inline constexpr std::array<char[4], 256> gen_mnemos()
+{
+    std::array<char[4], 256> mnemos {};
+    for (unsigned op = 0; op < 256; ++op)
+    {
+        mnemos[op][0] = 'b';
+        mnemos[op][1] = 'a';
+        mnemos[op][2] = 'd';
+        mnemos[op][3] = '\0';
+    }
+
+    for (const auto& tbl_entry : opcode_defs)
+    {
+        for (auto op : tbl_entry.addrmode_ops)
+        {
+            if (op == 0) continue;
+
+            mnemos[op][0] = tbl_entry.name[0];
+            mnemos[op][1] = tbl_entry.name[1];
+            mnemos[op][2] = tbl_entry.name[2];
+            mnemos[op][3] = tbl_entry.name[3];
+        }
+    }
+    // manually set opcode 0x00 as brk
+    mnemos[0][0] = 'b';
+    mnemos[0][1] = 'r';
+    mnemos[0][2] = 'k';
+    mnemos[0][3] = '\0';
+
+    return mnemos;
+}
+
+constexpr const extern std::array<opcode_callback, 256> opcodes = gen();
+constexpr const std::array<char[4], 256> cpu6502::opcode_mnemos = gen_mnemos();

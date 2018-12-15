@@ -30,7 +30,7 @@ SOFTWARE.
 
 #include "interface/memory.hpp"
 
-extern std::array<void(*)(cpu6502&), 256> opcodes;
+extern const std::array<void(*)(cpu6502&), 256> opcodes;
 
 void cpu6502::pull_irq_low()
 {
