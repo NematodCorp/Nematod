@@ -30,6 +30,7 @@ SOFTWARE.
 #include <variant>
 
 #include "addr_modes.hpp"
+#include "common/tmputils.hpp"
 
 struct OpcodeEntry
 {
@@ -45,21 +46,6 @@ struct OpcodeEntry
     bool bus_conflict_illegal_op = false;
 };
 using opcode_callback = void(*)(cpu6502&);
-
-template<std::size_t N>
-struct num { static const constexpr auto value = N; };
-
-template <class F, std::size_t... Is>
-constexpr void static_for_impl(F func, std::index_sequence<Is...>)
-{
-    (func(num<Is>{}), ...);
-}
-
-template <std::size_t N, typename F>
-constexpr void static_for(F func)
-{
-    static_for_impl(func, std::make_index_sequence<N>());
-}
 
 constexpr OpcodeEntry opcode_defs[] = {
     /*   name      callback    impl imm/rel zp   zpx   zpy   abs   abx   aby   izx   izy   izp   ind   iax  bitrel bitzp read? invl? corr_invl? */

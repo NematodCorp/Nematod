@@ -63,8 +63,11 @@ public:
     { }
 
 public:
+    void pull_nmi_low();
+    void pull_nmi_high();
     void pull_irq_low();
-    void raise_nmi();
+
+    void raise_nmi(); // manually raise NMI
     void reset();
 
     bool     stopped() const { return m_stopped; }
@@ -282,10 +285,12 @@ public: /* private */
     void say(uint16_t);
     void xas(uint16_t);
 
-private:
+public:
     ReadCallback read_clbk;
     WriteCallback write_clbk;
     LogCallback log_clbk;
+
+    int m_nmi_line_state { 1 };
 
     bool m_stopped { false };
     bool m_irq_pending { false };

@@ -42,7 +42,7 @@ public:
        RAM() : MemoryInterfaceable(t_size) {};
        virtual data  read(address offset) override {return m_internal[offset];};
        virtual void write(address offset, data value) override {m_internal[offset] = value;};
-protected:
+public:
        std::array<data, t_size> m_internal;
 };
 

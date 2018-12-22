@@ -55,11 +55,7 @@ inline void destroy_co_group(coroutine_group& group)
     aco_share_stack_destroy(group.stack);
 }
 
-inline coroutine make_co(const coroutine_group& group, void(*func)())
-{
-    return {aco_create(main_coroutine, group.stack, 64, func, nullptr)};
-}
-inline coroutine make_co(const coroutine_group& group, void(*func)(), void* arg)
+inline coroutine make_co(const coroutine_group& group, void(*func)(), void* arg = nullptr)
 {
     return {aco_create(main_coroutine, group.stack, 64, (void(*)())func, arg)};
 }

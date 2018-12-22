@@ -32,6 +32,20 @@ SOFTWARE.
 
 extern const std::array<void(*)(cpu6502&), 256> opcodes;
 
+void cpu6502::pull_nmi_low()
+{
+    if (m_nmi_line_state != 0)
+    {
+        raise_nmi();
+    }
+    m_nmi_line_state = 0;
+}
+
+void cpu6502::pull_nmi_high()
+{
+    m_nmi_line_state = 1;
+}
+
 void cpu6502::pull_irq_low()
 {
     if (interrupts_enabled())

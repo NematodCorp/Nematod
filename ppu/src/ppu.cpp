@@ -24,6 +24,7 @@ SOFTWARE.
 */
 
 #include "ppu.hpp"
+#include "assert.h"
 
 #include "common/coroutine.hpp"
 
@@ -47,12 +48,12 @@ void PPU::cycle(int amnt)
     for (int i { 0 }; i < amnt; ++i)
     {
         co_yield();
+        ++m_clocks;
     }
 }
 
 void PPU::render_frame()
 {
-    scanline<PreRender>();
     m_current_line = 0;
     for (size_t i { 0 }; i < 240; ++i)
     {
@@ -62,8 +63,10 @@ void PPU::render_frame()
     {
         scanline<Idle>();
     }
+    scanline<PreRender>();
 
     m_odd_frame ^= 1;
+    ++frames;
 }
 
 template <PPU::ScanlineType Type>
@@ -76,6 +79,7 @@ void PPU::scanline()
         if constexpr (Type == PreRender)
         {
             m_status &= (~(VerticalBlank | Sprite0Hit | SpriteOverflow)); // clear status flags
+            update_nmi_logic();
         }
 
         sprite_evaluation();
@@ -103,16 +107,20 @@ void PPU::scanline()
     {
         if (m_current_line == 241)
         {
-            set_vblank();
-            cycle(339);
+            if (!m_suppress_vbl)
+            {
+                set_vblank();
+            }
+            else
+            {
+                m_suppress_vbl = false;
+            }
         }
-        else
-        {
-            cycle(340);
-        }
+        cycle(340);
     }
 
     ++m_current_line;
+    m_clocks = 0;
 }
 
 void PPU::render_tile(unsigned tile_idx)
@@ -203,14 +211,33 @@ void PPU::do_unused_nt_fetches()
 
     ppu_read(nt_addr); cycle(2); // dummy NT read
     ppu_read(nt_addr); cycle(1); // dummy NT read
-    if (!m_odd_frame)
-        cycle(1); // skip cycle on odd frames
+    if (m_current_line == 261 && m_odd_frame && rendering_enabled() && false)
+    {
+        cycle(0); // skip cycle on odd frames
+    }
+    else
+    {
+        cycle(1);
+    }
 }
 
 void PPU::set_vblank()
 {
-    // TODO : NMI
     m_status |= VerticalBlank;
+    update_nmi_logic();
+}
+
+void PPU::update_nmi_logic()
+{
+    if ((m_status & VerticalBlank) && (m_ctrl & VBlankNMI))
+    {
+        cpu->m_int_delay = true;
+        cpu->pull_nmi_low();
+    }
+    else
+    {
+        cpu->pull_nmi_high();
+    }
 }
 
 unsigned PPU::sprite_height() const
@@ -245,6 +272,7 @@ void PPU::sprite_evaluation()
         if (found_sprites == 8)
         {
             m_status |= SpriteOverflow;
+            break;
         }
     }
 }
@@ -327,8 +355,6 @@ void PPU::reset_horizontal_scroll()
     // reset the horizontal components of v
     m_v &= ~CoarseX; m_v &= ~HNameTable;
     m_v |= (m_t & (HNameTable | CoarseX));
-
-    cycle();
 }
 
 void PPU::reset_vertical_scroll()
@@ -336,8 +362,6 @@ void PPU::reset_vertical_scroll()
     // reset the vertical components of v
     m_v &= ~CoarseY; m_v &= ~VNameTable; m_v &= ~FineYScroll;
     m_v |= (m_t & (VNameTable | CoarseY | FineYScroll));
-
-    cycle();
 }
 
 void PPU::coarse_x_increment()

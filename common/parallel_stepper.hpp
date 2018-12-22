@@ -30,6 +30,7 @@ SOFTWARE.
 
 #include "coroutine.hpp"
 #include "clock.hpp"
+#include "tmputils.hpp"
 
 inline void parallel_stepper_trampoline()
 {
@@ -64,14 +65,34 @@ public:
 public:
     void step() noexcept
     {
-        for (auto& entry : m_coroutines)
+        static_for<sizeof...(ClockReceivers)>([this](auto n)
         {
+            auto& entry = m_coroutines[n.value];
             ++entry.cur_clock;
             if (entry.cur_clock == entry.clock_rate)
             {
                 entry.cur_clock = 0;
                 run_co(entry.co);
             }
+        });
+    }
+
+    void step_whole() noexcept
+    {
+        static_for<tvar_max(ClockReceivers::clock_rate...)>([this](auto clock)
+        {
+            int idx = 0;
+            (run_if_clock<ClockReceivers, clock.value>(idx++), ...);
+        });
+    }
+
+private:
+    template <typename Receiver, size_t clock>
+    inline constexpr void run_if_clock(int co_idx)
+    {
+        if constexpr ((clock % Receiver::clock_rate) == 0)
+        {
+            run_co(m_coroutines[co_idx].co);
         }
     }
 

@@ -30,14 +30,18 @@ SOFTWARE.
 #include <array>
 
 #include "memory.hpp"
+#include "interrupts/include/interrupts.hpp"
+#include "cpu.hpp" // for debug
 
-class PPU
+class PPU : public InterruptEmitter<NMI>
 {
     friend class PPUCtrlRegs;
 
 public:
+    cpu6502* cpu;
     AddressSpace addr_space;
     std::array<uint8_t, 240*256> framebuffer;
+    unsigned frames { 0 };
 
 public:
     void render_frame();
@@ -54,6 +58,7 @@ private:
     void do_unused_nt_fetches();
 
     void set_vblank();
+    void update_nmi_logic();
 
     enum ScanlineType
     {
@@ -109,6 +114,9 @@ private:
     void coarse_x_increment();
     void y_increment();
 
+    bool rendering_enabled() const
+    { return (m_mask & ShowBG) || (m_mask & ShowOAM); }
+
 private:
     enum OAMAttributes : uint8_t
     {
@@ -140,6 +148,8 @@ private:
     uint16_t                    m_t { 0 };
     uint8_t                     m_x { 0 };
 
+    bool                        m_suppress_vbl { false };
+
     uint16_t                    m_tile_bmp_lo;
     uint16_t                    m_tile_bmp_hi;
 
@@ -150,6 +160,7 @@ private:
     uint8_t                     m_ctrl { 0 };
     uint8_t                     m_mask { 0 };
     size_t                      m_current_line { 0 };
+    unsigned                    m_clocks { 0 };
     std::array<sprite_data, 64> m_oam_memory;
     std::array<sprite_data, 8>  m_secondary_oam;
 

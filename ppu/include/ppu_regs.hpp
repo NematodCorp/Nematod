@@ -46,8 +46,11 @@ public:
         PPUDATA
     };
 
-    PPUCtrlRegs(PPU& ppu) : MemoryInterfaceable(0x8), m_ppu(ppu)
+    PPUCtrlRegs(PPU& ppu) : MemoryInterfaceable(0x2000), m_ppu(ppu)
     {}
+
+public:
+    void clear_decay();
 
 protected:
     data  read(address ptr)             override;
@@ -78,6 +81,7 @@ private:
 
     PPU& m_ppu;
     uint8_t m_oam_addr = 0;
+    uint8_t m_decay = 0;
 
     bool m_w = false;
 };

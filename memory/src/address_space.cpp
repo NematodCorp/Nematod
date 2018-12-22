@@ -44,6 +44,7 @@ data AddressSpace::read(address ptr) {
     it--;
 
     if(ptr < (it->base_address + it->module->size())) {
+
         return it->module->read(ptr - it->base_address); // Relative address
     } else {
         return m_last_written_value; // Open bus (modules aren't countiguous in memory)
