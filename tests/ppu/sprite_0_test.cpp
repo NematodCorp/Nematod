@@ -136,7 +136,7 @@ TEST(Ppu, Sprite0)
     //ASSERT_NO_THROW(cart = load_nes_file("roms/sprite_overflow_tests/04-obscure.nes"));
     //ASSERT_NO_THROW(cart = load_nes_file("roms/sprite_overflow_tests/05-emulator.nes"));
 
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/smb.nes"));
+    ASSERT_NO_THROW(cart = load_nes_file("roms/excitebike.nes"));
 
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/02-vbl_set_time.nes"));
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/03-vbl_clear_time.nes"));
@@ -149,12 +149,15 @@ TEST(Ppu, Sprite0)
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/10-even_odd_timing.nes"));
 
     memcpy(prg_rom.data.data(), cart.prg_rom.data(), cart.prg_rom.size());
-    //memcpy(prg_rom.data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
+    memcpy(prg_rom.data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
 
     if (!cart.chr_rom.empty())
         memcpy(chr_rom.data.data(), cart.chr_rom.data(), 0x2000);
 
-    cpu_space.add_port(memory_port{&nes_ram , 0x0000});
+    cpu_space.add_port(memory_port{&nes_ram , 0x0000}); // RAM mirroring
+    cpu_space.add_port(memory_port{&nes_ram , 0x0800});
+    cpu_space.add_port(memory_port{&nes_ram , 0x1000});
+    cpu_space.add_port(memory_port{&nes_ram , 0x1800});
     cpu_space.add_port(memory_port{&ppu_regs, 0x2000});
     cpu_space.add_port(memory_port{&io_regs,  0x4000});
     cpu_space.add_port(memory_port{&crt_ram,  0x6000});
@@ -182,7 +185,7 @@ TEST(Ppu, Sprite0)
 
     crt_ram.m_internal[0x0] = 0x80;
 
-#if 1
+#if 0
     size_t clocks = 0;
     while(crt_ram.m_internal[0x0] == 0x80)
     {
@@ -201,15 +204,6 @@ TEST(Ppu, Sprite0)
     printf("cpu $06fc : 0x%x (0x%x)\n", cpu_space.read(0x06fc), cpu_space.read(0x074a));
     return;
 #endif
-
-    //            for (size_t i { 0 }; i < 240; ++i)
-    //            {
-    //                for (size_t j { 0 }; j < 256; ++j)
-    //                {
-    //                    printf("%.2X ", ppu.framebuffer[i*256 + j]);
-    //                }
-    //                printf("\n");
-    //            }
 
     sf::RenderWindow window(sf::VideoMode(800, 600), "My window");
 
