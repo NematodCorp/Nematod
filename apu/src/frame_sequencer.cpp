@@ -16,7 +16,11 @@ void FrameSequencer::on_write(int, int data) {
 
        if(is_mode1) mode1.next();
 
-       InterruptEmitter<IRQ>::release_interrupt();
+       if(((state >> 2) & 0x1) && !IRQ_dis) {
+              InterruptEmitter<IRQ>::raise_interrupt();
+       } else {
+              InterruptEmitter<IRQ>::release_interrupt();
+       }
 }
 
 void FrameSequencer::on_active_clock() {
@@ -30,7 +34,9 @@ void FrameSequencer::on_active_clock() {
 
        state = what_to_do;
 
-       if(((what_to_do >> 2) & 0x1) && !IRQ_dis) {
+       if(((state >> 2) & 0x1) && !IRQ_dis) {
               InterruptEmitter<IRQ>::raise_interrupt();
+       } else {
+              InterruptEmitter<IRQ>::release_interrupt();
        }
 }
