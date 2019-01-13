@@ -4,8 +4,6 @@
 
 enum log_level {INFO = 0, WARNING = 1, ERROR = 2};
 
-struct log_message {std::string str, log_level lvl;};
-
 class Loggeable {
 public:
        void mute()   {m_mute = true;};
@@ -17,7 +15,13 @@ public:
 private:
 	   template<typename T...>
        void log(log_level lvl, const char* str, T ... args) {
-       		if(a.lvl >= m_min_lvl && !m_mute){std::cout << m_prefix; std::printf(str, args...); std::cout << '\n';}
+       		if(a.lvl >= m_min_lvl && !m_mute){
+       			std::clog << m_prefix;
+
+       			char buff[2048];
+       			std::snprintf(&buff[0], 2048, str, args...); // No buffer overflow there, sir !
+
+       			std::clog << &buff[0] << '\n';}
        	};
 
        bool m_mute = false;
