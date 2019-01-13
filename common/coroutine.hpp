@@ -75,9 +75,24 @@ inline void set_co_arg(coroutine& co, void* arg)
     co.co->arg = arg;
 }
 
-inline void run_co(const coroutine& co)
+inline void run_co(const coroutine& resume_co)
 {
-    aco_resume(co.co);
+    // don't switch to if it can be skipped
+    if (resume_co.co->skip_count)
+    {
+        --resume_co.co->skip_count;
+        return;
+    }
+    aco_resume(resume_co.co);
+}
+
+inline void co_set_skip(size_t count)
+{
+    aco_get_co()->skip_count = count;
+}
+inline void co_set_skip(aco_t* co, size_t count)
+{
+    co->skip_count = count;
 }
 
 inline void co_yield()

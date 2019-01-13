@@ -63,6 +63,19 @@ public:
     }
 
 public:
+    void reset() noexcept
+    {
+        void* clock_receivers[sizeof...(ClockReceivers)];
+        for (size_t i = 0; i < sizeof...(ClockReceivers); ++i)
+            clock_receivers[i] = m_coroutines[i].co.co->arg;
+        for (auto& entry : m_coroutines)
+        {
+            destroy_co(entry.co);
+        }
+        unsigned co_idx = 0, receiver_idx = 0;
+        ((m_coroutines[co_idx++] = {make_co(m_grp, &parallel_stepper_trampoline, clock_receivers[receiver_idx++]), ClockReceivers::clock_rate, 0}), ...);
+    }
+
     void step() noexcept
     {
         static_for<sizeof...(ClockReceivers)>([this](auto n)

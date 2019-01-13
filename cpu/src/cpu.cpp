@@ -82,6 +82,8 @@ void cpu6502::reset()
     m_wait_interrupt = false;
 }
 
+int found = false;
+
 void cpu6502::run(unsigned steps)
 {
     for (size_t i { 0 }; i < steps; ++i)
@@ -96,10 +98,12 @@ void cpu6502::run(unsigned steps)
 
         m_int_delay = false;
 
+
         uint8_t opcode = fetch_opcode();
         cycle(); // first cycle : read opcode, increment PC
 
         auto operation = opcodes[opcode];
+
         operation(*this);
 
         // check interrupts

@@ -19,8 +19,10 @@ project(${project_name})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/lib)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Werror=return-type -fsanitize=undefined -Og -g")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -Og -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Werror=return-type -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+
+find_package(SFML 2.5 COMPONENTS graphics audio window REQUIRED)
 
 include_directories(.)
 

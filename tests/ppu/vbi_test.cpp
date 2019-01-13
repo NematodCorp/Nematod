@@ -91,70 +91,70 @@ ROM<0x8000> prg_rom;
 ROM<0x2000> chr_rom;
 RAM<0x2000> crt_ram;
 
-/*
 
-TEST(Ppu, VbiTest)
-{
-    ppu.cpu = &cpu;
 
-    cartdrige_data cart;
-    ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/02-vbl_set_time.nes"));
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/03-vbl_clear_time.nes"));
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/04-nmi_control.nes"));
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/05-nmi_timing.nes"));
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/06-suppression.nes"));
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/09-even_odd_frames.nes"));
-    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/10-even_odd_timing.nes"));
+//TEST(Ppu, VbiTest)
+//{
+//    ppu.cpu = &cpu;
 
-    memcpy(prg_rom.data.data(), cart.prg_rom.data(), 0x8000);
-    memcpy(chr_rom.data.data(), cart.chr_rom.data(), 0x2000);
+//    cartdrige_data cart;
+//    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/02-vbl_set_time.nes"));
+//    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/03-vbl_clear_time.nes"));
+//    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/04-nmi_control.nes"));
+//    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/05-nmi_timing.nes"));
+//    ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/06-suppression.nes"));
+//    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/09-even_odd_frames.nes"));
+//    //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/10-even_odd_timing.nes"));
 
-    cpu_space.add_port(memory_port{&nes_ram , 0x0000});
-    cpu_space.add_port(memory_port{&ppu_regs, 0x2000});
-    cpu_space.add_port(memory_port{&crt_ram,  0x6000});
-    cpu_space.add_port(memory_port{&prg_rom , 0x8000});
+//    memcpy(prg_rom.data.data(), cart.prg_rom.data(), 0x8000);
+//    memcpy(chr_rom.data.data(), cart.chr_rom.data(), 0x2000);
 
-    ppu.addr_space.add_port(memory_port{&chr_rom, 0x0000});
-    ppu.addr_space.add_port(memory_port{&ppu_ram, 0x2000});
-    ppu.addr_space.add_port(memory_port{&palette_ram, 0x3F00});
+//    cpu_space.add_port(memory_port{&nes_ram , 0x0000});
+//    cpu_space.add_port(memory_port{&ppu_regs, 0x2000});
+//    cpu_space.add_port(memory_port{&crt_ram,  0x6000});
+//    cpu_space.add_port(memory_port{&prg_rom , 0x8000});
 
-    ParallelStepper stepper{cpu_rcv, ppu_rcv};
+//    ppu.addr_space.add_port(memory_port{&chr_rom, 0x0000});
+//    ppu.addr_space.add_port(memory_port{&ppu_ram, 0x2000});
+//    ppu.addr_space.add_port(memory_port{&palette_ram, 0x3F00});
 
-    cpu.reset();
+//    ParallelStepper stepper{cpu_rcv, ppu_rcv};
 
-    crt_ram.m_internal[0x0] = 0x80;
+//    cpu.reset();
 
-#if 0
-    while(crt_ram.m_internal[0x0] == 0x80)
-    {
-        stepper.step_whole();
-    }
-#else
-    while(crt_ram.m_internal[0x0] == 0x80)
-    {
-        //printf("clock cyle n°%d\n", i);
-        run_co(stepper.m_coroutines[1].co); // ppu
-                run_co(stepper.m_coroutines[0].co); // cpu
-        run_co(stepper.m_coroutines[1].co);
-        run_co(stepper.m_coroutines[1].co);
-    }
-#endif
+//    crt_ram.m_internal[0x0] = 0x80;
 
-//    for (size_t i { 0 }; i < 240; ++i)
+//#if 0
+//    while(crt_ram.m_internal[0x0] == 0x80)
 //    {
-//        for (size_t j { 0 }; j < 256; ++j)
-//        {
-//            printf("%.2X ", ppu.framebuffer[i*256 + j]);
-//        }
-//        printf("\n");
+//        stepper.step_whole();
 //    }
+//#else
+//    while(crt_ram.m_internal[0x0] == 0x80)
+//    {
+//        //printf("clock cyle n°%d\n", i);
+//        run_co(stepper.m_coroutines[1].co); // ppu
+//                run_co(stepper.m_coroutines[0].co); // cpu
+//        run_co(stepper.m_coroutines[1].co);
+//        run_co(stepper.m_coroutines[1].co);
+//    }
+//#endif
 
-    printf("code : 0x%x, msg : '%s'\n", crt_ram.m_internal[0x0], &crt_ram.m_internal[0x4]);
-    printf("status : 0x%x\n", cpu.state.flags);
-    printf("opcode is : 0x%x:'%s' (0x%x)\n", cpu_space.read(cpu.state.pc), cpu6502::opcode_mnemos[cpu_space.read(cpu.state.pc)], cpu.state.pc);
-    printf("vector : 0x%x\n", (cpu_space.read(0xFFFC)) | (cpu_space.read(0xFFFD) << 8));
-}
+////    for (size_t i { 0 }; i < 240; ++i)
+////    {
+////        for (size_t j { 0 }; j < 256; ++j)
+////        {
+////            printf("%.2X ", ppu.framebuffer[i*256 + j]);
+////        }
+////        printf("\n");
+////    }
 
-*/
+//    printf("code : 0x%x, msg : '%s'\n", crt_ram.m_internal[0x0], &crt_ram.m_internal[0x4]);
+//    printf("status : 0x%x\n", cpu.state.flags);
+//    printf("opcode is : 0x%x:'%s' (0x%x)\n", cpu_space.read(cpu.state.pc), cpu6502::opcode_mnemos[cpu_space.read(cpu.state.pc)], cpu.state.pc);
+//    printf("vector : 0x%x\n", (cpu_space.read(0xFFFC)) | (cpu_space.read(0xFFFD) << 8));
+//}
+
+
 
 }

@@ -37,23 +37,15 @@ enum VRegComponents : uint16_t
     FineYScroll = 0x7000
 };
 
-constexpr std::array<uint32_t, 0x40> ppu_palette =
-{0x545454, 0x001E74, 0x081090, 0x300088, 0x440064, 0x5C0030, 0x540400, 0x3C1800, 0x202A00, 0x083A00, 0x004000, 0x003C00, 0x00323C, 0x000000, 0x000000, 0x000000,
- 0x989698, 0x084CC4, 0x3032EC, 0x5C1EE4, 0x8814B0, 0xA01464, 0x982220, 0x783C00, 0x545A00, 0x287200, 0x087C00, 0x007628, 0x006678, 0x000000, 0x000000, 0x000000,
- 0xECEEEC, 0x4C9AEC, 0x787CEC, 0xB062EC, 0xE454EC, 0xEC58B4, 0xEC6A64, 0xD48820, 0xA0AA00, 0x74C400, 0x4CD020, 0x38CC6C, 0x38B4CC, 0x3C3C3C, 0x000000, 0x000000,
- 0xECEEEC, 0xA8CCEC, 0xBCBCEC, 0xD4B2EC, 0xECAEEC, 0xECAED4, 0xECB4B0, 0xE4C490, 0xCCD278, 0xB4DE78, 0xA8E290, 0x98E2B4, 0xA0D6E4, 0xA0A2A0, 0x000000, 0x000000, };
-
-void PPU::cycle(int amnt)
-{
-    for (int i { 0 }; i < amnt; ++i)
-    {
-        co_yield();
-        ++m_clocks;
-    }
-}
+// in order to force inlining
+#define cycle(amnt) \
+    co_set_skip((amnt) - 1); \
+    co_yield(); \
+    m_clocks += (amnt);
 
 void PPU::render_frame()
 {
+    scanline<PreRender>();
     m_current_line = 0;
     for (size_t i { 0 }; i < 240; ++i)
     {
@@ -63,45 +55,94 @@ void PPU::render_frame()
     {
         scanline<Idle>();
     }
-    scanline<PreRender>();
 
     m_odd_frame ^= 1;
     ++frames;
 }
 
+void PPU::power_up()
+{
+    m_ctrl = 0;
+    m_mask = 0;
+    m_status = 0;
+    m_oam_addr = 0;
+    m_v = m_t = 0;
+    m_odd_frame = false;
+}
+
+void PPU::reset()
+{
+    m_ctrl = 0;
+    m_mask = 0;
+    m_v = m_t = 0;
+    m_odd_frame = false;
+}
+
 template <PPU::ScanlineType Type>
 void PPU::scanline()
 {
-    cycle(); // idle cycle
+        //printf("scanline %d : addr : m_v : 0x%x\n", m_current_line, m_v&0x0C00);
+    if constexpr (Type == PreRender)
+    {
+        m_status &= (~(Sprite0Hit)); // clear sprite 0 flag on first cycle (why ? no idea, but passes timing tests)
+        m_sprite0_hit_cycle = UINT_MAX;
+
+        m_status &= (~(SpriteOverflow)); // clear sprite 0 flag on first cycle (why ? no idea, but passes timing tests)
+        m_sprite_overflow_cycle = UINT_MAX;
+
+        //update_nmi_logic();
+    }
+
+    if (!m_skip_cycle)
+    {
+        cycle(1); // idle cycle
+    }
 
     if constexpr (Type != Idle)
     {
         if constexpr (Type == PreRender)
         {
-            m_status &= (~(VerticalBlank | Sprite0Hit | SpriteOverflow)); // clear status flags
+            m_status &= (~(VerticalBlank)); // clear status flags
             update_nmi_logic();
         }
+        if (rendering_enabled())
+            sprite_evaluation();
 
-        sprite_evaluation();
         for (size_t i { 0 }; i < 256 / 8; ++i)
         {
-            fetch_next_tile();
             if constexpr (Type == Render)
                     render_tile(i);
-            coarse_x_increment();
+            fetch_next_tile(); reload_shifts();
         }
-        reset_horizontal_scroll();
+
+        if (rendering_enabled())
+        {
+            y_increment(); // actually 1 cycle late, may cause problems ?
+            reset_horizontal_scroll();
+        }
         prefetch_sprites(); // prefetch next scanline's sprites
 
         if constexpr (Type == PreRender)
         {
-            reset_vertical_scroll();
+            if (rendering_enabled()) reset_vertical_scroll();
         }
 
-        fetch_next_tile();
-        fetch_next_tile(); // fetch next two tiles
+        // fetch next two tiles
+        fetch_next_tile(); reload_shifts();
+        m_tile_bmp_lo <<= 8;
+        m_tile_bmp_hi <<= 8;
+        for (size_t i { 0 }; i < 8; ++i)
+        {
+            m_attr_shift_lo <<= 1; m_attr_shift_lo |= m_attr_latch_lo;
+            m_attr_shift_hi <<= 1; m_attr_shift_hi |= m_attr_latch_hi;
+        }
+        fetch_next_tile(); reload_shifts();
+
 
         do_unused_nt_fetches();
+        // copy palette data so render_tile doesn't make calls to ppu_read for each pixel of the scanline, results in less overhead
+        // prevents palette modification during scanline but isn't much of a problem since palette change mid-scaline is virtually impossible
+        copy_palette_data();
     }
     else
     {
@@ -116,55 +157,73 @@ void PPU::scanline()
                 m_suppress_vbl = false;
             }
         }
-        cycle(340);
+        cycle(1);
+        cycle(1); // explicit cycling so we can handle NMI suppression
+        cycle(338);
     }
 
     ++m_current_line;
     m_clocks = 0;
+
+    // ensure that sprite0 and sprite_overflow flags are set even in $2002 wasn't read during the frame
+    set_unread_flags();
 }
 
 void PPU::render_tile(unsigned tile_idx)
 {
+    //    if (m_tile_bmp_hi || m_tile_bmp_lo)
+    //        printf("what we have is  bmp : 0x%x, 0x%x, at (%d, %d)\n",  m_tile_bmp_hi, m_tile_bmp_lo, tile_idx*8, m_current_line);
     for (size_t i { 0 }; i < 8; ++i)
     {
         unsigned x_pos = tile_idx*8 + i;
 
-        const bool render_bg      = m_ctrl & ShowBG  && !(x_pos < 8 && !(m_ctrl & ShowLeftmostBG ));
-        const bool render_sprites = m_ctrl & ShowOAM && !(x_pos < 8 && !(m_ctrl & ShowLeftmostOAM));
+        const bool render_bg      = (m_mask & ShowBG ) && !(x_pos < 8 && !(m_mask & ShowLeftmostBG ));
+        const bool render_sprites = (m_mask & ShowOAM) && !(x_pos < 8 && !(m_mask & ShowLeftmostOAM));
 
         uint8_t bg_pattern = 0;
-        uint8_t bg_palette = m_bg_palette;
+        uint8_t bg_palette = 0;
 
         if (render_bg)
         {
-            bg_pattern = ((m_tile_bmp_hi >> m_x)&0b1 >> 1) |
-                    ((m_tile_bmp_lo >> m_x)&0b1);
+            bg_pattern = (((m_tile_bmp_hi >> (15-m_x))&0b1) << 1) |
+                    ((m_tile_bmp_lo >> (15-m_x))&0b1);
+            bg_palette = (((m_attr_shift_hi >> (7-m_x))&0b1) << 1) |
+                    ((m_attr_shift_lo >> (7-m_x))&0b1);
         }
 
         uint8_t sprite_pattern = 0;
         uint8_t sprite_palette = 0;
-        auto sprite = m_prefetched_sprites[i];
 
+        auto sprite = m_prefetched_sprites[i];
         if (render_sprites)
         {
-            for (size_t i { 7 }; ; i--)
+            for (size_t j { 0 }; j<8;++j)
             {
-                if (sprite.attributes == 0xFF) continue; // invalid
-                if (x_pos < sprite.x_pos || x_pos >= sprite.x_pos + 8) continue;
+                auto temp_sprite = m_prefetched_sprites[j];
+
+                if (temp_sprite.attributes == 0xFF) continue; // invalid
+                if (x_pos < temp_sprite.x_pos || x_pos >= (unsigned)(temp_sprite.x_pos) + 8) continue;
+                sprite = temp_sprite;
+
                 unsigned sprite_x = x_pos - sprite.x_pos;
 
-                if (sprite.attributes & VerticalFlip)
+                if (sprite.attributes & HorizontalFlip)
                     sprite_x ^= 7;
 
-                sprite_pattern = ((sprite.pattern_high << sprite_x)&0b1 >> 1) |
-                        ((sprite.pattern_low  << sprite_x)&0b1     );
+                uint8_t pattern = (((sprite.pattern_high >> (7-sprite_x))&0b1) << 1) |
+                        ((sprite.pattern_low  >> (7-sprite_x))&0b1     );
+                if (pattern == 0) continue;
+
+                sprite_pattern = pattern;
                 sprite_palette = sprite.attributes & 0b11;
 
                 // test sprite 0 hit
-                if (render_bg && sprite_pattern && bg_pattern && x_pos != 255)
+                if ((sprite.attributes&IsSprite0) && render_bg && bg_pattern && x_pos != 255)
                 {
-                    m_status |= Sprite0Hit;
+                    if (m_sprite0_hit_cycle == UINT_MAX)
+                        m_sprite0_hit_cycle = x_pos;
                 }
+                break;
             }
         }
 
@@ -173,52 +232,65 @@ void PPU::render_tile(unsigned tile_idx)
         {
             if (sprite_pattern == 0)
             {
-                output_color = ppu_read(0x3F00);
+                output_color = m_palette_copy[0x00];
             }
             else
             {
-                output_color = ppu_read(0x3F10 + sprite_palette*4 + sprite_pattern);
+                output_color = m_palette_copy[0x10 + sprite_palette*4 + sprite_pattern];
             }
         }
         else
         {
             if (sprite_pattern && !(sprite.attributes & BehindBG))
             {
-                output_color = ppu_read(0x3F10 + sprite_palette*4 + sprite_pattern);
+                output_color = m_palette_copy[0x10 + sprite_palette*4 + sprite_pattern];
             }
             else
             {
-                output_color = ppu_read(0x3F00 + bg_palette*4 + bg_pattern);
+                output_color = m_palette_copy[0x00 + bg_palette*4 + bg_pattern];
             }
         }
 
-        if (m_ctrl & Greyscale)
+        if (m_mask & Greyscale)
         {
             output_color &= 0x30; // only use colors from the grey column of the NES palette
         }
 
-        framebuffer[tile_idx*8 + i] = output_color;
+        framebuffer[x_pos + m_current_line*256] = output_color;
+        // TODO : emphasis bits
 
-        m_tile_bmp_lo >>= 1;
-        m_tile_bmp_hi >>= 1;
+        m_tile_bmp_lo <<= 1;
+        m_tile_bmp_hi <<= 1;
+        m_attr_shift_lo <<= 1; m_attr_shift_lo |= m_attr_latch_lo;
+        m_attr_shift_hi <<= 1; m_attr_shift_hi |= m_attr_latch_hi;
     }
 }
 
 void PPU::do_unused_nt_fetches()
 {
-    constexpr uint16_t nt_base[4] = {0x2000, 0x2400, 0x2800, 0x2C00};
-    uint16_t nt_addr = nt_base[m_ctrl&0b11] | (m_v & ~FineYScroll);
+    uint16_t nt_addr = 0x2000 | (m_v & ~FineYScroll);
 
-    ppu_read(nt_addr); cycle(2); // dummy NT read
     ppu_read(nt_addr); cycle(1); // dummy NT read
-    if (m_current_line == 261 && m_odd_frame && rendering_enabled() && false)
-    {
-        cycle(0); // skip cycle on odd frames
-    }
+
+    if (m_current_line == 261 && m_odd_frame && rendering_enabled())
+        m_skip_cycle = true;
     else
-    {
-        cycle(1);
-    }
+        m_skip_cycle = false;
+
+    cycle(1);
+    ppu_read(nt_addr); cycle(2); // dummy NT read
+}
+
+void PPU::reload_shifts()
+{
+    m_tile_bmp_lo &= 0xFF00;
+    m_tile_bmp_hi &= 0xFF00;
+
+    m_tile_bmp_lo |= m_prefetched_bg_lo;
+    m_tile_bmp_hi |= m_prefetched_bg_hi;
+
+    m_attr_latch_lo = m_prefetched_at_lo;
+    m_attr_latch_hi = m_prefetched_at_hi;
 }
 
 void PPU::set_vblank()
@@ -240,17 +312,6 @@ void PPU::update_nmi_logic()
     }
 }
 
-unsigned PPU::sprite_height() const
-{
-    return (m_ctrl & SpriteSize8x16) ? 16 : 8;
-}
-
-uint8_t PPU::ppu_read(uint16_t addr)
-{
-    uint8_t data = addr_space.read(addr);
-    return data;
-}
-
 void PPU::sprite_evaluation()
 {
     std::fill(m_secondary_oam.begin(), m_secondary_oam.end(), sprite_data{0xFF, 0xFF, 0xFF, 0xFF});
@@ -259,8 +320,18 @@ void PPU::sprite_evaluation()
     size_t found_sprites = 0;
     for (size_t i { 0 }; i < 64; ++i)
     {
-        if (m_oam_memory[i].y_pos >= m_current_line &&
-                m_oam_memory[i].y_pos < m_current_line + sprite_height())
+        if (found_sprites == 9)
+        {
+            int count = 65 + 49 + (i-1)*2 + rendering_enabled();
+            //printf("with clocks %d, i %d\n", count, m_current_line);
+            if (m_sprite_overflow_cycle > count)
+                m_sprite_overflow_cycle = count;
+            //printf("sprite overflow on scanline %d\n", m_current_line);
+            break;
+        }
+        if (m_current_line >= m_oam_memory[i].y_pos &&
+                m_current_line < m_oam_memory[i].y_pos + sprite_height() &&
+                m_oam_memory[i].y_pos != 255)
         {
             m_secondary_oam[found_sprites] = m_oam_memory[i];
             if (i == 0) // mark as sprite 0
@@ -269,18 +340,12 @@ void PPU::sprite_evaluation()
                 m_secondary_oam[found_sprites].attributes &= ~IsSprite0;
             ++found_sprites;
         }
-        if (found_sprites == 8)
-        {
-            m_status |= SpriteOverflow;
-            break;
-        }
     }
 }
 
 void PPU::prefetch_sprites()
 {
-    constexpr uint16_t nt_base[4] = {0x2000, 0x2400, 0x2800, 0x2C00};
-    uint16_t nt_addr = nt_base[m_ctrl&0b11] | (m_v & ~FineYScroll);
+    uint16_t nt_addr = 0x2000 | (m_v & ~FineYScroll);
     // coarse scrolling registers are divided by 4 because attribute tables indexes 4x4 tile blocks
     /*               */ /*base*/ /* nametable */  /*  coarse y / 4 */   /*  coarse x / 4 */
     uint16_t attr_addr = 0x23C0 | (m_v & 0x0C00) | ((m_v >> 4) & 0x38) | ((m_v >> 2) & 0x07);
@@ -288,12 +353,16 @@ void PPU::prefetch_sprites()
     for (size_t i { 0 }; i < 8; ++i)
     {
         auto data = m_secondary_oam[i];
-        uint16_t addr = 0;
+        uint16_t addr;
         // 8x16 sprites have a different addressing mode
         if (sprite_height() == 16)
-            addr = ((data.tile_index & 1) * 0x1000) + ((data.tile_index & ~1) * 16);
+            addr = ((data.tile_index & 0b1) * 0x1000) + ((data.tile_index & ~0b1) * 0x10);
         else
-            addr = (m_ctrl&SpriteTableAddr ? 0x1000 : 0x0000) + (data.tile_index * 16);
+            addr = ((m_ctrl&SpriteTableAddr) ? 0x1000 : 0x0000) + (data.tile_index * 0x10);
+
+        unsigned sprY = m_current_line - data.y_pos;  // Line inside the sprite.
+        if (data.attributes & VerticalFlip) sprY ^= sprite_height() - 1;      // Vertical flip.
+        addr += sprY + (sprY & 8);  // Select the second tile if on 8x16.
 
         /*       dummy      */ ppu_read(nt_addr  ); cycle(2); // dummy NT read
         /*       dummy      */ ppu_read(attr_addr); cycle(2); // dummy AY read
@@ -307,10 +376,7 @@ void PPU::prefetch_sprites()
         else
         {
             m_prefetched_sprites[i].attributes = data.attributes;
-
-            unsigned sprY = m_current_line - data.y_pos;  // Line inside the sprite.
-            if (data.attributes & 0x80) sprY ^= sprite_height() - 1;      // Vertical flip.
-            addr += sprY + (sprY & 8);  // Select the second tile if on 8x16.
+            m_prefetched_sprites[i].x_pos = data.x_pos;
 
             m_prefetched_sprites[i].pattern_low  = pattern_low;
             m_prefetched_sprites[i].pattern_high = pattern_high;
@@ -320,40 +386,60 @@ void PPU::prefetch_sprites()
 
 void PPU::fetch_next_tile()
 {
-    constexpr uint16_t nt_base[4] = {0x2000, 0x2400, 0x2800, 0x2C00};
     constexpr uint16_t bg_base[2] = {0x0000, 0x1000};
 
-    uint16_t nt_addr = nt_base[m_ctrl&0b11] | (m_v & ~FineYScroll);
+    int coarse_x = m_v & CoarseX;
+    int coarse_y = (m_v & CoarseY) >> 5;
+
+    uint16_t nt_addr = 0x2000 | (m_v & ~FineYScroll);
     // coarse scrolling registers are divided by 4 because attribute tables indexes 4x4 tile blocks
     /*               */ /*base*/ /* nametable */  /*  coarse  y/4  */   /*  coarse  x/4  */
     uint16_t attr_addr = 0x23C0 | (m_v & 0x0C00) | ((m_v >> 4) & 0x38) | ((m_v >> 2) & 0x07);
+    //uint16_t attr_addr = 0x23C0 | (m_v & 0x0C00) | ((coarse_y/4)<<3) | (coarse_x/4);
 
     uint8_t nt_byte   = ppu_read(nt_addr  ); cycle(2);
     uint8_t attr_byte = ppu_read(attr_addr); cycle(2);
 
-    uint16_t pattern_addr = bg_base[(m_ctrl>>4)&0b1] + nt_byte + ((m_v & FineYScroll) >> 12);
+    uint16_t pattern_addr = nt_byte*0x10 + bg_base[(m_ctrl>>4)&0b1] + ((m_v & FineYScroll) >> 12);
 
-    m_tile_bmp_lo >>= 8;
-    m_tile_bmp_hi >>= 8;
-    m_tile_bmp_lo |= ppu_read(pattern_addr  ) << 8; cycle(2);
-    m_tile_bmp_hi |= ppu_read(pattern_addr+8) << 8; cycle(2);
+    m_prefetched_bg_lo = ppu_read(pattern_addr  ); cycle(2);
+    m_prefetched_bg_hi = ppu_read(pattern_addr+8); cycle(2);
 
-    int coarse_x = m_v & CoarseX;
-    int coarse_y = (m_v & CoarseY) >> 5;
-    int attr_shift = ((coarse_y&0b10) + (coarse_x&0b10 >> 1))*2;
+    if (coarse_y & 0b10)
+        attr_byte >>= 4;
+    if (coarse_x & 0b10)
+        attr_byte >>= 2;
 
-    m_bg_palette = (attr_byte >> attr_shift) & 0b11;
+    m_prefetched_at_lo = attr_byte & 0b1;
+    m_prefetched_at_hi = (attr_byte & 0b10) >> 1;
+
+    if (rendering_enabled())
+    {
+        coarse_x_increment();
+    }
 }
 
 void PPU::oam_dma(const std::array<uint8_t, 256> &data)
 {
-    memcpy(m_secondary_oam.data(), data.data(), 256);
+    for (size_t i { 0 }; i < 256; ++i)
+    {
+        uint8_t addr = m_oam_addr + i;
+        oam_write(addr, data[i]);
+    }
+}
+
+void PPU::copy_palette_data()
+{
+    for (size_t i { 0 }; i < 0x20; ++i)
+    {
+        m_palette_copy[i] = ppu_read(0x3F00 + i);
+    }
 }
 
 void PPU::reset_horizontal_scroll()
 {
     // reset the horizontal components of v
-    m_v &= ~CoarseX; m_v &= ~HNameTable;
+    m_v &= ~(HNameTable | CoarseX);
     m_v |= (m_t & (HNameTable | CoarseX));
 }
 
@@ -386,7 +472,7 @@ void PPU::y_increment()
     else // overflow
     {
         m_v &= ~FineYScroll; // set fine y scroll to 0
-        uint8_t coarse_y = (m_v & CoarseY) >> 5;
+        uint16_t coarse_y = (m_v & CoarseY) >> 5;
         if (coarse_y == 29) // overflow as row 29 is the last row of tiles
         {
             coarse_y = 0;
@@ -394,6 +480,7 @@ void PPU::y_increment()
         }
         else if (coarse_y == 31) // the user code set coarse_y to an invalid value; ignore flips
         {
+            printf("Coarse Y was set to an invalid value\n"); // FIXME : log
             coarse_y = 0;
         }
         else
@@ -401,6 +488,19 @@ void PPU::y_increment()
             ++coarse_y;
         }
         m_v &= ~CoarseY;
-        m_v |= (uint16_t)coarse_y << 5;
+        m_v |= (coarse_y << 5);
+    }
+}
+
+void PPU::set_unread_flags()
+{
+    // ensure they are immediately set
+    if (m_sprite0_hit_cycle != UINT_MAX)
+    {
+        m_sprite0_hit_cycle = 0;
+    }
+    if (m_sprite_overflow_cycle != UINT_MAX)
+    {
+        m_sprite_overflow_cycle = 0;
     }
 }

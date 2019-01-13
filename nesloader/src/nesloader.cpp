@@ -63,7 +63,8 @@ cartdrige_data load_nes_file(const std::vector<uint8_t> &file_data)
         report_error("trainers are unsupported");
 
     memcpy(cart.prg_rom.data(), file_data.data() + 16 , cart.prg_rom.size());
-    memcpy(cart.chr_rom.data(), file_data.data() + 16 + cart.prg_rom.size(), cart.chr_rom.size());
+    if (!cart.chr_rom.empty())
+        memcpy(cart.chr_rom.data(), file_data.data() + 16 + cart.prg_rom.size(), cart.chr_rom.size());
 
     return cart;
 }

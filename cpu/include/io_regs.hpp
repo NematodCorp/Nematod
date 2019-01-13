@@ -1,7 +1,7 @@
 /*
-ppu_regs.hpp
+io_regs.hpp
 
-Copyright (c) 11 Yann BOUCHER (yann)
+Copyright (c) 23 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,69 +22,54 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef PPU_REGS_HPP
-#define PPU_REGS_HPP
+#ifndef IO_REGS_HPP
+#define IO_REGS_HPP
 
-#include <array>
+#include "memory/include/memory.hpp"
 
-#include "memory.hpp"
+#include "common/coroutine.hpp"
 
 class PPU;
+class cpu6502;
+class InputAdapter;
 
-class PPUCtrlRegs : public MemoryInterfaceable
+class IORegs : public MemoryInterfaceable
 {
 public:
     enum regs : uint8_t
     {
-        PPUCTRL = 0x0,
-        PPUMASK,
-        PPUSTATUS,
-        OAMADDR,
-        OAMDATA,
-        PPUSCROLL,
-        PPUADDR,
-        PPUDATA
+        OAMDMA = 0x14
     };
 
-    PPUCtrlRegs(PPU& ppu) : MemoryInterfaceable(0x2000), m_ppu(ppu)
+    IORegs(cpu6502& cpu, aco_t* cpu_co, PPU& ppu, InputAdapter& input) : MemoryInterfaceable(0x20),
+        m_cpu(cpu), m_cpu_co(cpu_co), m_ppu(ppu), m_input(input)
     {}
-
-public:
-    void clear_decay();
-    void reset();
 
 protected:
     data  read(address ptr)             override;
     void write(address ptr, data value) override;
 
 private:
-    uint8_t status_read();
-    uint8_t oam_data_read();
-    uint8_t data_read();
+    void oam_dma(uint8_t page);
 
-    void    ctrl_write(uint8_t val);
-    void    mask_write(uint8_t val);
-    void    oam_addr_write(uint8_t val);
-    void    oam_data_write(uint8_t val);
-    void    scroll_write(uint8_t val);
-    void    addr_write(uint8_t val);
-    void    data_write(uint8_t val);
+    void input_write(uint8_t val);
+    uint8_t input_read16();
+    uint8_t input_read17();
 
     uint8_t invalid_read();
     void    invalid_write(uint8_t val);
 
-private:
-    using read_callback  = uint8_t(PPUCtrlRegs::*)();
-    using write_callback = void(PPUCtrlRegs::*)(uint8_t);
+public:
+    using read_callback  = uint8_t(IORegs::*)();
+    using write_callback = void(IORegs::*)(uint8_t);
 
-    static std::array<read_callback, 8> m_read_clbks;
-    static std::array<write_callback, 8> m_write_clbks;
+    static std::array<read_callback, 0x20> m_read_clbks;
+    static std::array<write_callback, 0x20> m_write_clbks;
 
+    cpu6502& m_cpu;
+    aco_t* m_cpu_co;
     PPU& m_ppu;
-    uint8_t m_decay = 0;
-    uint8_t m_read_buffer = 0;
-
-    bool m_w = false;
+    InputAdapter& m_input;
 };
 
-#endif // PPU_REGS_HPP
+#endif // IO_REGS_HPP

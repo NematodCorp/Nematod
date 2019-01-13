@@ -183,8 +183,8 @@ public: /* private */
 
     void cycle()
     {
-        CPU6502_CYCLE_ACTION();
         ++cycles;
+        CPU6502_CYCLE_ACTION();
     }
 
     template<enum AddrModes>

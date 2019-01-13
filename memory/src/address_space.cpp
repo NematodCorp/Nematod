@@ -32,8 +32,13 @@ void AddressSpace::remove_port(MemoryInterfaceable* to_remove) {
 }
 
 data AddressSpace::read(address ptr) {
-    auto comp = [](const memory_port &a, const memory_port &b) {return a.base_address < b.base_address;};
-    auto it = std::upper_bound(m_ports.begin(), m_ports.end(), memory_port{nullptr, ptr}, comp);
+    //auto comp = [](const memory_port &a, const memory_port &b) {return a.base_address < b.base_address;};
+    //auto it = std::upper_bound(m_ports.begin(), m_ports.end(), memory_port{nullptr, ptr}, comp);
+
+    // O(n) but actually much faster than a binary search due to a lower constant time
+    auto it = m_ports.begin();
+    while (it->base_address <= ptr && it != m_ports.end())
+        ++it;
     // The return it is *greater* than the address we search for.
     // If a mem modules hits, it must be the one before it.
 
@@ -52,8 +57,12 @@ data AddressSpace::read(address ptr) {
 }
 
 void AddressSpace::write(address ptr, data value) {
-    auto comp = [](const memory_port &a, const memory_port &b) {return a.base_address < b.base_address;};
-    auto it = std::upper_bound(m_ports.begin(), m_ports.end(), memory_port{nullptr, ptr}, comp);
+    //auto comp = [](const memory_port &a, const memory_port &b) {return a.base_address < b.base_address;};
+    //auto it = std::upper_bound(m_ports.begin(), m_ports.end(), memory_port{nullptr, ptr}, comp);
+
+    auto it = m_ports.begin();
+    while (it->base_address <= ptr && it != m_ports.end())
+        ++it;
 
     // The return it is *greater* than the address we search for.
     // If a mem modules hits, it must be the one before it.

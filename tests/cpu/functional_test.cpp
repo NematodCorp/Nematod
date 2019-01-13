@@ -123,14 +123,6 @@ TEST(Cpu, NesTestRomTest)
 
 static cpu6502 cpu(cpu6502_read, cpu6502_write, log);
 
-static void step_cpu()
-{
-    while (true)
-    {
-        cpu.run(1);
-    }
-}
-
 TEST(Cpu, BlarggInstrTest)
 {
     for (int i { 1 }; i <= 16; ++i)
