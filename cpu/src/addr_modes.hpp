@@ -67,7 +67,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteX>()
     if ((addr&0xFF) + state.x >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
+        read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
     }
     addr += state.x;
     return addr;
@@ -80,7 +80,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteY>()
     if ((addr&0xFF) + state.y >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
+        read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     }
     addr += state.y;
     return addr;
@@ -91,7 +91,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteXWrite>()
     uint16_t addr  = read(state.pc++); cycle();
     addr |= read(state.pc++) << 8;     cycle();
     // do a dummy read at the invalid address
-    read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
+    read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
     addr += state.x;
     return addr;
 }
@@ -101,7 +101,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::AbsoluteYWrite>()
     uint16_t addr  = read(state.pc++); cycle();
     addr |= read(state.pc++) << 8;     cycle();
     // do a dummy read at the invalid address
-    read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
+    read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     addr += state.y;
     return addr;
 }
@@ -124,7 +124,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroY>()
     if ((addr&0xFF) + state.y >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
+        read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     }
     addr += state.y;
     return addr;
@@ -136,7 +136,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::IndZeroYWrite>()
     uint16_t addr      = read(zero_addr);       cycle();
     addr     |= read((uint8_t)(zero_addr+1))<<8;  cycle();
     // do a dummy read at the invalid address
-    read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
+    read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.y)); cycle();
     addr += state.y;
     return addr;
 }
@@ -172,7 +172,7 @@ uint16_t cpu6502::addr_mode_get<cpu6502::BusConflictInvalid>()
     if ((addr&0xFF) + state.x >= 0x100) // page crossed
     {
         // do a dummy read at the invalid address
-        read(addr&0xFF00 + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
+        read((addr&0xFF00) + (uint8_t)((uint8_t)(addr&0xFF) + state.x)); cycle();
     }
 
     return addr; // let the instruction handle the messy page crossing behavior

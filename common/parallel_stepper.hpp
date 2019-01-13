@@ -27,6 +27,7 @@ SOFTWARE.
 
 #include <array>
 #include <cassert>
+#include <iostream>
 
 #include "coroutine.hpp"
 #include "clock.hpp"
@@ -101,7 +102,7 @@ public:
 
 private:
     template <typename Receiver, size_t clock>
-    inline constexpr void run_if_clock(int co_idx)
+    inline constexpr void run_if_clock([[maybe_unused]] int co_idx)
     {
         if constexpr ((clock % Receiver::clock_rate) == 0)
         {

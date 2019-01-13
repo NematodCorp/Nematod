@@ -330,4 +330,4 @@ static inline constexpr std::array<char[4], 256> gen_mnemos()
 }
 
 constexpr const extern std::array<opcode_callback, 256> opcodes = gen();
-constexpr const std::array<char[4], 256> cpu6502::opcode_mnemos = gen_mnemos();
+const std::array<char[4], 256> cpu6502::opcode_mnemos = gen_mnemos();
