@@ -1,5 +1,5 @@
 #include <string>
-
+#include <iostream>
 #pragma once
 
 enum log_level {INFO = 0, WARNING = 1, ERROR = 2};
@@ -15,7 +15,10 @@ public:
        void prefix(std::string prefix) {m_prefix = prefix;};
 
 private:
-       void log(log_message a) {if(a.lvl >= m_min_lvl && !m_mute){std::clog << m_prefix << a.str << '\n';}};
+	   template<typename T...>
+       void log(log_level lvl, const char* str, T ... args) {
+       		if(a.lvl >= m_min_lvl && !m_mute){std::cout << m_prefix; std::printf(str, args...); std::cout << '\n';}
+       	};
 
        bool m_mute = false;
        log_level m_min_lvl = INFO;
