@@ -136,7 +136,7 @@ TEST(Ppu, Sprite0)
     //ASSERT_NO_THROW(cart = load_nes_file("roms/sprite_overflow_tests/04-obscure.nes"));
     //ASSERT_NO_THROW(cart = load_nes_file("roms/sprite_overflow_tests/05-emulator.nes"));
 
-    ASSERT_NO_THROW(cart = load_nes_file("roms/excitebike.nes"));
+    ASSERT_NO_THROW(cart = load_nes_file("roms/smb.nes"));
 
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/02-vbl_set_time.nes"));
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/03-vbl_clear_time.nes"));
@@ -149,7 +149,8 @@ TEST(Ppu, Sprite0)
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/10-even_odd_timing.nes"));
 
     memcpy(prg_rom.data.data(), cart.prg_rom.data(), cart.prg_rom.size());
-    memcpy(prg_rom.data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
+    if (cart.prg_rom.size() == 0x4000) // 16 KiB ROM, mirror upper bank
+        memcpy(prg_rom.data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
 
     if (!cart.chr_rom.empty())
         memcpy(chr_rom.data.data(), cart.chr_rom.data(), 0x2000);
@@ -168,11 +169,22 @@ TEST(Ppu, Sprite0)
     else
         ppu.addr_space.add_port(memory_port{&chr_ram, 0x0000});
 
-    // H-mirroring
-    ppu.addr_space.add_port(memory_port{&ppu_nt1, 0x2000});
-    ppu.addr_space.add_port(memory_port{&ppu_nt2, 0x2400});
-    ppu.addr_space.add_port(memory_port{&ppu_nt1, 0x2800});
-    ppu.addr_space.add_port(memory_port{&ppu_nt2, 0x2C00});
+    if (cart.mirroring == cartdrige_data::Horizontal)
+    {
+        // H-mirroring
+        ppu.addr_space.add_port(memory_port{&ppu_nt1, 0x2000});
+        ppu.addr_space.add_port(memory_port{&ppu_nt1, 0x2400});
+        ppu.addr_space.add_port(memory_port{&ppu_nt2, 0x2800});
+        ppu.addr_space.add_port(memory_port{&ppu_nt2, 0x2C00});
+    }
+    else if (cart.mirroring == cartdrige_data::Vertical)
+    {
+        // V-mirroring
+        ppu.addr_space.add_port(memory_port{&ppu_nt1, 0x2000});
+        ppu.addr_space.add_port(memory_port{&ppu_nt2, 0x2400});
+        ppu.addr_space.add_port(memory_port{&ppu_nt1, 0x2800});
+        ppu.addr_space.add_port(memory_port{&ppu_nt2, 0x2C00});
+    }
 
     ppu.addr_space.add_port(memory_port{&palette_ram, 0x3F00});
 
@@ -261,19 +273,19 @@ TEST(Ppu, Sprite0)
                         case sf::Keyboard::Left:
                             if (press && controller.p1_state.right) // prevent Left+Right presses
                                 break;
-                                controller.p1_state.left = press; break;
+                            controller.p1_state.left = press; break;
                         case sf::Keyboard::Right:
                             if (press && controller.p1_state.left)
                                 break;
-                                controller.p1_state.right = press; break;
+                            controller.p1_state.right = press; break;
                         case sf::Keyboard::Up:
                             if (press && controller.p1_state.down)
                                 break;
-                                controller.p1_state.up = press; break;
+                            controller.p1_state.up = press; break;
                         case sf::Keyboard::Down:
                             if (press && controller.p1_state.up)
                                 break;
-                                controller.p1_state.down = press; break;
+                            controller.p1_state.down = press; break;
                     }
                 }
             }
