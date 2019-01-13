@@ -148,9 +148,10 @@ TEST(Ppu, Sprite0)
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/09-even_odd_frames.nes"));
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/10-even_odd_timing.nes"));
 
-    memcpy(prg_rom.data.data(), cart.prg_rom.data(), cart.prg_rom.size());
-    if (cart.prg_rom.size() == 0x4000) // 16 KiB ROM, mirror upper bank
-        memcpy(prg_rom.data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
+    memcpy(prg_rom.m_data.data(), cart.prg_rom.data(), cart.prg_rom.size());
+    if (cart.prg_rom.size() == 0x4000) {
+        memcpy(prg_rom.m_data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
+    }
 
     if (!cart.chr_rom.empty())
         memcpy(chr_rom.m_data.data(), cart.chr_rom.data(), 0x2000);
@@ -287,11 +288,12 @@ TEST(Ppu, Sprite0)
                             if (press && controller.p1_state.up)
                                 break;
                             controller.p1_state.down = press; break;
+                        default:
+                            break;
                     }
-
-                    default: // Ignore other events
-                        break; 
                 }
+                default: // Ignore other events
+                    break; 
             }
         }
 
