@@ -46,7 +46,7 @@ public:
        std::array<data, t_size> m_internal;
 };
 
-template<std::size_t t_size, typename lambda>
+template<std::size_t t_size, typename lambda> // Battery-backed RAM
 class BBRAM : public RAM<t_size> {
 public:
        BBRAM(lambda callback_destroyed) : RAM<t_size>(), callback(callback_destroyed) {};
@@ -60,8 +60,8 @@ class ROM : public MemoryInterfaceable {
 public:
     ROM() : MemoryInterfaceable(t_size) {}
 
-       virtual data  read(address offset) {return data[offset];};
-               void write(address offset, data value) {throw std::logic_error("Cannot write to ROM");};
+       virtual data  read(address offset) {return m_data[offset];};
+               void write(address, data) {throw std::logic_error("Cannot write to ROM");};
 public:
-       std::array<data, t_size> data;
+       std::array<data, t_size> m_data;
 };

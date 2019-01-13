@@ -148,12 +148,13 @@ TEST(Ppu, Sprite0)
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/09-even_odd_frames.nes"));
     //ASSERT_NO_THROW(cart = load_nes_file("roms/vbi_tests/10-even_odd_timing.nes"));
 
-    memcpy(prg_rom.data.data(), cart.prg_rom.data(), cart.prg_rom.size());
-    if (cart.prg_rom.size() == 0x4000) // 16 KiB ROM, mirror upper bank
-        memcpy(prg_rom.data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
+    memcpy(prg_rom.m_data.data(), cart.prg_rom.data(), cart.prg_rom.size());
+    if (cart.prg_rom.size() == 0x4000) {
+        memcpy(prg_rom.m_data.data() + 0x4000, cart.prg_rom.data(), cart.prg_rom.size());
+    }
 
     if (!cart.chr_rom.empty())
-        memcpy(chr_rom.data.data(), cart.chr_rom.data(), 0x2000);
+        memcpy(chr_rom.m_data.data(), cart.chr_rom.data(), 0x2000);
 
     cpu_space.add_port(memory_port{&nes_ram , 0x0000}); // RAM mirroring
     cpu_space.add_port(memory_port{&nes_ram , 0x0800});
@@ -239,6 +240,7 @@ TEST(Ppu, Sprite0)
     }
 
     window.setFramerateLimit(60);
+
     // run the program as long as the window is open
     while (window.isOpen())
     {
@@ -286,15 +288,21 @@ TEST(Ppu, Sprite0)
                             if (press && controller.p1_state.up)
                                 break;
                             controller.p1_state.down = press; break;
+                        default:
+                            break;
                     }
                 }
+                default: // Ignore other events
+                    break; 
             }
         }
+
         // run until vblank then draw frame to prevent rendering artifacts
         for (size_t i { 0 }; i < (341*4/12)*241; ++i) // cpu clocks per scanline * 241
         {
             stepper.step_whole();
         }
+
         // run until scanline 241 is actually reached
         while (ppu.m_current_line != 241)
         {
