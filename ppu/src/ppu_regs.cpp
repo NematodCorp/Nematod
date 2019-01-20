@@ -82,6 +82,7 @@ uint8_t PPUCtrlRegs::status_read()
     m_w = false; // clear w
 
     uint8_t status = (m_ppu.m_status & 0x80) | (m_decay & 0x1F); // ignore Sprite0 and overflow for now, lower 5 bits should be == to decay
+
     if (m_ppu.m_clocks >= m_ppu.m_sprite0_hit_cycle)
     {
         status |= PPU::Sprite0Hit;
@@ -90,6 +91,7 @@ uint8_t PPUCtrlRegs::status_read()
     {
         status |= PPU::SpriteOverflow;
     }
+
     //m_decay &= ~0xE0; m_decay |= (status & 0xE0);
 
     // handle suppression behavior
@@ -108,6 +110,7 @@ uint8_t PPUCtrlRegs::status_read()
     }
 
     m_ppu.m_status &= ~PPU::VerticalBlank; // reset vblank flag
+
     m_ppu.update_nmi_logic();
     return status;
 }
@@ -147,17 +150,22 @@ void PPUCtrlRegs::oam_data_write(uint8_t val)
 
 void PPUCtrlRegs::scroll_write(uint8_t val)
 {
+    if (m_ppu.m_current_line == 58)
+    {
+        printf("scroll write on scanline %d of 0x%x, m_w : %d\n", m_ppu.m_current_line, val, m_w);
+        printf("base NT : 0x%x\n", 0x2000 | (m_ppu.m_v & 0x0C00));
+    }
     if (!m_w)
     {
         m_ppu.m_t &= ~0b00000000'00011111;
-        m_ppu.m_t |= (uint16_t)(val>>3);
+        m_ppu.m_t |= (uint16_t)(val)>>3;
 
         m_ppu.m_x = val&0b111;
         m_w = true;
     }
     else
     {
-        m_ppu.m_t &= ~0b1111111'11100000;
+        m_ppu.m_t &= ~0b1110011'11100000;
                 m_ppu.m_t |= ((uint16_t)(val&0b111))<<12;
         m_ppu.m_t |= ((uint16_t)(val&0b11111000))<<2;
 

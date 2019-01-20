@@ -25,49 +25,28 @@ SOFTWARE.
 
 #include "standard_controller.hpp"
 
-#include <stdio.h>
-
-void StandardController::input_write(uint8_t val)
+void StandardController::set_output(uint8_t byte)
 {
-    m_strobe_on = val&1;
+    m_strobe_on = byte&1;
     if (m_strobe_on)
-        m_p1_button_to_output = m_p2_button_to_output = 0;
+        m_button_to_output = 0;
 }
 
-uint8_t StandardController::output1_read()
+uint8_t StandardController::read_data()
 {
     if (m_strobe_on)
     {
-        return p1_state.a; // return state of first button if the strobe bit is on
+        return state.a; // return state of first button if the strobe bit is on
     }
     else
     {
-        if (m_p1_button_to_output > 7)
-            return 1 | 0x40;
+        if (m_button_to_output > 7)
+            return 1;
 
         uint8_t ret;
-        ret = ((uint8_t*)&p1_state)[m_p1_button_to_output];
-        ++m_p1_button_to_output;
+        ret = ((uint8_t*)&state)[m_button_to_output];
+        ++m_button_to_output;
 
-        return (ret&1) | 0x40;
-    }
-}
-
-uint8_t StandardController::output2_read()
-{
-    if (m_strobe_on)
-    {
-        return p2_state.a; // return state of first button if the strobe bit is on
-    }
-    else
-    {
-        if (m_p2_button_to_output > 7)
-            return 1 | 0x40;
-
-        uint8_t ret;
-        ret = ((uint8_t*)&p2_state)[m_p2_button_to_output];
-        ++m_p2_button_to_output;
-
-        return (ret&1) | 0x40;
+        return ret&1;
     }
 }

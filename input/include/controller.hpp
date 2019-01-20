@@ -1,7 +1,7 @@
 /*
-standard_controller.hpp
+controller.hpp
 
-Copyright (c) 08 Yann BOUCHER (yann)
+Copyright (c) 20 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef STANDARD_CONTROLLER_HPP
-#define STANDARD_CONTROLLER_HPP
+#ifndef CONTROLLER_HPP
+#define CONTROLLER_HPP
 
-#include "controller.hpp"
+#include <cstdint>
 
-class StandardController : public Controller
+class Controller
 {
 public:
-    virtual void     set_output(uint8_t byte);
-    virtual uint8_t  read_data()             ;
-
-public:
-    struct State
-    {
-        bool a, b;
-        bool select, start;
-        bool up, down, left, right;
-    } state;
-
-private:
-    bool m_strobe_on { true };
-    uint8_t m_button_to_output { 0 };
-
+    virtual void     set_output(uint8_t byte) = 0;
+    virtual uint8_t  read_data()              = 0;
 };
 
-#endif // STANDARD_CONTROLLER_HPP
+#endif // CONTROLLER_HPP

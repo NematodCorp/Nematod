@@ -171,14 +171,13 @@ void PPU::scanline()
 
 void PPU::render_tile(unsigned tile_idx)
 {
-    //    if (m_tile_bmp_hi || m_tile_bmp_lo)
-    //        printf("what we have is  bmp : 0x%x, 0x%x, at (%d, %d)\n",  m_tile_bmp_hi, m_tile_bmp_lo, tile_idx*8, m_current_line);
+    const bool render_bg      = (m_mask & ShowBG ) && !(tile_idx == 0 && !(m_mask & ShowLeftmostBG ));
+    const bool render_sprites = (m_mask & ShowOAM) && !(tile_idx == 0 && !(m_mask & ShowLeftmostOAM));
+
+
     for (size_t i { 0 }; i < 8; ++i)
     {
         unsigned x_pos = tile_idx*8 + i;
-
-        const bool render_bg      = (m_mask & ShowBG ) && !(x_pos < 8 && !(m_mask & ShowLeftmostBG ));
-        const bool render_sprites = (m_mask & ShowOAM) && !(x_pos < 8 && !(m_mask & ShowLeftmostOAM));
 
         uint8_t bg_pattern = 0;
         uint8_t bg_palette = 0;
@@ -194,7 +193,7 @@ void PPU::render_tile(unsigned tile_idx)
         uint8_t sprite_pattern = 0;
         uint8_t sprite_palette = 0;
 
-        auto sprite = m_prefetched_sprites[i];
+        prefetched_sprite sprite;
         if (render_sprites)
         {
             for (size_t j { 0 }; j<8;++j)
@@ -218,10 +217,10 @@ void PPU::render_tile(unsigned tile_idx)
                 sprite_palette = sprite.attributes & 0b11;
 
                 // test sprite 0 hit
-                if ((sprite.attributes&IsSprite0) && render_bg && bg_pattern && x_pos != 255)
+                if (j == 0 && m_sprite0_on_scanline && sprite_pattern && bg_pattern && x_pos != 255)
                 {
                     if (m_sprite0_hit_cycle == UINT_MAX)
-                        m_sprite0_hit_cycle = x_pos;
+                        m_sprite0_hit_cycle = x_pos+1;
                 }
                 break;
             }
@@ -236,18 +235,18 @@ void PPU::render_tile(unsigned tile_idx)
             }
             else
             {
-                output_color = m_palette_copy[0x10 + sprite_palette*4 + sprite_pattern];
+                output_color = m_palette_copy[0x10 | sprite_palette*4 | sprite_pattern];
             }
         }
         else
         {
             if (sprite_pattern && !(sprite.attributes & BehindBG))
             {
-                output_color = m_palette_copy[0x10 + sprite_palette*4 + sprite_pattern];
+                output_color = m_palette_copy[0x10 | sprite_palette*4 | sprite_pattern];
             }
             else
             {
-                output_color = m_palette_copy[0x00 + bg_palette*4 + bg_pattern];
+                output_color = m_palette_copy[0x00 | bg_palette*4 | bg_pattern];
             }
         }
 
@@ -320,24 +319,25 @@ void PPU::sprite_evaluation()
     size_t found_sprites = 0;
     for (size_t i { 0 }; i < 64; ++i)
     {
-        if (found_sprites == 9)
-        {
-            int count = 65 + 49 + (i-1)*2 + rendering_enabled();
-            //printf("with clocks %d, i %d\n", count, m_current_line);
-            if (m_sprite_overflow_cycle > count)
-                m_sprite_overflow_cycle = count;
-            //printf("sprite overflow on scanline %d\n", m_current_line);
-            break;
-        }
         if (m_current_line >= m_oam_memory[i].y_pos &&
                 m_current_line < m_oam_memory[i].y_pos + sprite_height() &&
                 m_oam_memory[i].y_pos != 255)
         {
+            if (found_sprites == 8)
+            {
+                int count = 65 + 49 + (i-1)*2 + rendering_enabled();
+                //printf("with clocks %d, i %d\n", count, m_current_line);
+                if (m_sprite_overflow_cycle > count)
+                    m_sprite_overflow_cycle = count;
+                //printf("sprite overflow on scanline %d\n", m_current_line);
+                break;
+            }
+
             m_secondary_oam[found_sprites] = m_oam_memory[i];
             if (i == 0) // mark as sprite 0
-                m_secondary_oam[found_sprites].attributes |=  IsSprite0;
+                m_sprite0_on_scanline = true;
             else
-                m_secondary_oam[found_sprites].attributes &= ~IsSprite0;
+                m_sprite0_on_scanline = false;
             ++found_sprites;
         }
     }

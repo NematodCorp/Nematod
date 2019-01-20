@@ -27,12 +27,18 @@ SOFTWARE.
 
 #include <cstdint>
 
+#include "controller.hpp"
+
 class InputAdapter
 {
 public:
-    virtual void    input_write(uint8_t val) = 0;
-    virtual uint8_t output1_read()           = 0;
-    virtual uint8_t output2_read()           = 0;
+    Controller* controller_1 { nullptr };
+    Controller* controller_2 { nullptr };
+
+public:
+    void    input_write(uint8_t val);
+    uint8_t output1_read();
+    uint8_t output2_read();
 };
 
 #endif // INPUTADAPTER_HPP

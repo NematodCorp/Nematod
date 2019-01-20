@@ -45,4 +45,6 @@ FOREACH(lib ${LIBS})
        INCLUDE_DIRECTORIES(${lib}/include)
 ENDFOREACH()
 
+INCLUDE_DIRECTORIES(memory/include)
+
 ADD_SUBDIRECTORY(tests)

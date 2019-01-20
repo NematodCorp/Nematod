@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include <array>
 
-#include "memory.hpp"
+#include "memory/include/memory.hpp"
 
 class PPU;
 

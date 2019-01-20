@@ -1,7 +1,7 @@
 /*
-standard_controller.hpp
+inputadapter.cpp
 
-Copyright (c) 08 Yann BOUCHER (yann)
+Copyright (c) 20 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,30 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef STANDARD_CONTROLLER_HPP
-#define STANDARD_CONTROLLER_HPP
 
-#include "controller.hpp"
+#include "inputadapter.hpp"
 
-class StandardController : public Controller
+
+void InputAdapter::input_write(uint8_t val)
 {
-public:
-    virtual void     set_output(uint8_t byte);
-    virtual uint8_t  read_data()             ;
+    if (controller_1)
+        controller_1->set_output(val & 0b111); // only first 3 bits
+    if (controller_2)
+        controller_2->set_output(val & 0b111); // only first 3 bits
+}
 
-public:
-    struct State
-    {
-        bool a, b;
-        bool select, start;
-        bool up, down, left, right;
-    } state;
+uint8_t InputAdapter::output1_read()
+{
+    if (controller_1)
+        return 0x40 | controller_1->read_data();
+    else
+        return 0x40; // open bus
+}
 
-private:
-    bool m_strobe_on { true };
-    uint8_t m_button_to_output { 0 };
-
-};
-
-#endif // STANDARD_CONTROLLER_HPP
+uint8_t InputAdapter::output2_read()
+{
+    if (controller_2)
+        return 0x40 | controller_2->read_data();
+    else
+        return 0x40; // open bus
+}

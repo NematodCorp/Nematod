@@ -29,9 +29,10 @@ SOFTWARE.
 #include <climits>
 #include <array>
 
-#include "memory.hpp"
+// TODO : fix these ugly includes
+#include "memory/include/memory.hpp"
 #include "interrupts/include/interrupts.hpp"
-#include "cpu.hpp" // for debug
+#include "cpu/include/cpu.hpp" // for debug
 
 class PPU : public InterruptEmitter<NMI>
 {
@@ -142,7 +143,6 @@ private:
     enum OAMAttributes : uint8_t
     {
         Palette         = 0b11,
-        IsSprite0       = (1<<3), // only used to mark a prefetech_sprite as the sprite 0, not an actual PPU flag
         BehindBG        = (1<<5),
         HorizontalFlip  = (1<<6),
         VerticalFlip    = (1<<7)
@@ -173,6 +173,7 @@ public:
 
     bool                        m_suppress_vbl { false };
     bool                        m_skip_cycle { false };
+    bool                        m_sprite0_on_scanline { false };
     unsigned                    m_sprite0_hit_cycle { UINT_MAX };
     unsigned                    m_sprite_overflow_cycle { UINT_MAX };
 

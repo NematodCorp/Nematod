@@ -1,7 +1,7 @@
 /*
-standard_controller.hpp
+nes.hpp
 
-Copyright (c) 08 Yann BOUCHER (yann)
+Copyright (c) 19 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,52 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef STANDARD_CONTROLLER_HPP
-#define STANDARD_CONTROLLER_HPP
+#ifndef NES_HPP
+#define NES_HPP
 
-#include "controller.hpp"
+#include "memory/include/memory.hpp"
 
-class StandardController : public Controller
+class InputAdapter;
+class PPU;
+class PPUCtrlRegs;
+class cpu6502;
+class IORegs;
+
+namespace NES
 {
-public:
-    virtual void     set_output(uint8_t byte);
-    virtual uint8_t  read_data()             ;
+void init();
 
-public:
-    struct State
-    {
-        bool a, b;
-        bool select, start;
-        bool up, down, left, right;
-    } state;
+void soft_reset();
+void power_cycle();
 
-private:
-    bool m_strobe_on { true };
-    uint8_t m_button_to_output { 0 };
+void run_frame();
+void run_cpu_cycle();
+void run_ppu_cycle();
 
+// nametables
+extern RAM<0x0400> nt1, nt2, nt3, nt4;
+struct mirroring_config
+{
+    RAM<0x0400>& top_left   , & top_right;
+    RAM<0x0400>& bottom_left, & bottom_right;
 };
 
-#endif // STANDARD_CONTROLLER_HPP
+inline mirroring_config horizontal { nt1, nt1, nt2, nt2 };
+inline mirroring_config vertical   { nt1, nt2, nt1, nt2 };
+inline mirroring_config fourscreen { nt1, nt2, nt3, nt4 };
+void set_mirroring(const mirroring_config& config);
+
+extern InputAdapter input;
+extern PPU     ppu;
+extern PPUCtrlRegs ppu_regs;
+extern cpu6502 cpu;
+extern IORegs io_regs;
+
+extern AddressSpace cpu_space;
+
+extern RAM<0x0800> nes_ram;
+extern RAM<0x0100> palette_ram;
+
+}
+
+#endif // NES_HPP
