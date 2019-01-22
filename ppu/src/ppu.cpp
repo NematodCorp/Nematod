@@ -1,4 +1,4 @@
-/*
+﻿/*
 ppu.cpp
 
 Copyright (c) 17 Yann BOUCHER (yann)
@@ -38,10 +38,20 @@ enum VRegComponents : uint16_t
 };
 
 // in order to force inlining
+
 #define cycle(amnt) \
+    for (int i = 0; i < (amnt); ++i) \
+{ \
+    co_yield(); \
+    m_clocks++; \
+    }
+
+#define cycle_fast(amnt) \
     co_set_skip((amnt) - 1); \
     co_yield(); \
     m_clocks += (amnt);
+
+
 
 void PPU::render_frame()
 {
@@ -62,6 +72,7 @@ void PPU::render_frame()
 
 void PPU::power_up()
 {
+
     m_ctrl = 0;
     m_mask = 0;
     m_status = 0;
@@ -81,7 +92,7 @@ void PPU::reset()
 template <PPU::ScanlineType Type>
 void PPU::scanline()
 {
-        //printf("scanline %d : addr : m_v : 0x%x\n", m_current_line, m_v&0x0C00);
+    //printf("scanline %d : addr : m_v : 0x%x\n", m_current_line, m_v&0x0C00);
     if constexpr (Type == PreRender)
     {
         m_status &= (~(Sprite0Hit)); // clear sprite 0 flag on first cycle (why ? no idea, but passes timing tests)
@@ -105,6 +116,7 @@ void PPU::scanline()
             m_status &= (~(VerticalBlank)); // clear status flags
             update_nmi_logic();
         }
+
         if (rendering_enabled())
             sprite_evaluation();
 
@@ -140,9 +152,6 @@ void PPU::scanline()
 
 
         do_unused_nt_fetches();
-        // copy palette data so render_tile doesn't make calls to ppu_read for each pixel of the scanline, results in less overhead
-        // prevents palette modification during scanline but isn't much of a problem since palette change mid-scaline is virtually impossible
-        copy_palette_data();
     }
     else
     {
@@ -159,7 +168,7 @@ void PPU::scanline()
         }
         cycle(1);
         cycle(1); // explicit cycling so we can handle NMI suppression
-        cycle(338);
+        cycle_fast(338);
     }
 
     ++m_current_line;
@@ -217,10 +226,12 @@ void PPU::render_tile(unsigned tile_idx)
                 sprite_palette = sprite.attributes & 0b11;
 
                 // test sprite 0 hit
-                if (j == 0 && m_sprite0_on_scanline && sprite_pattern && bg_pattern && x_pos != 255)
+                if ((sprite.attributes&Sprite0) && bg_pattern && x_pos != 255)
                 {
                     if (m_sprite0_hit_cycle == UINT_MAX)
+                    {
                         m_sprite0_hit_cycle = x_pos+1;
+                    }
                 }
                 break;
             }
@@ -317,28 +328,47 @@ void PPU::sprite_evaluation()
     // can actually be done in an cycle-inaccurate way
     // only sprite tile fetches on pre-render line
     size_t found_sprites = 0;
-    for (size_t i { 0 }; i < 64; ++i)
+    size_t i { 0 };
+    for (; i < 64; ++i)
     {
-        if (m_current_line >= m_oam_memory[i].y_pos &&
-                m_current_line < m_oam_memory[i].y_pos + sprite_height() &&
-                m_oam_memory[i].y_pos != 255)
+        if (found_sprites == 8)
         {
-            if (found_sprites == 8)
-            {
-                int count = 65 + 49 + (i-1)*2 + rendering_enabled();
-                //printf("with clocks %d, i %d\n", count, m_current_line);
-                if (m_sprite_overflow_cycle > count)
-                    m_sprite_overflow_cycle = count;
-                //printf("sprite overflow on scanline %d\n", m_current_line);
-                break;
-            }
+            do_buggy_overflow_evaluation(i);
+            return;
+        }
 
+        if (sprite_in_range(m_oam_memory[i].y_pos))
+        {
             m_secondary_oam[found_sprites] = m_oam_memory[i];
             if (i == 0) // mark as sprite 0
-                m_sprite0_on_scanline = true;
+                m_secondary_oam[found_sprites].attributes |= Sprite0;
             else
-                m_sprite0_on_scanline = false;
+                m_secondary_oam[found_sprites].attributes &= ~Sprite0;
             ++found_sprites;
+        }
+    }
+}
+
+void PPU::do_buggy_overflow_evaluation(uint8_t starting_sprite)
+{
+    unsigned n = starting_sprite;
+    unsigned m = 0;
+    while (n < 64)
+    {
+        uint8_t y_pos = oam_read(n*4 + m);
+
+        if (sprite_in_range(y_pos))
+        {
+            int count = 65 + 48 + n*2 + rendering_enabled();
+            if (m_sprite_overflow_cycle > count)
+                m_sprite_overflow_cycle = count;
+
+            return;
+        }
+        else
+        {
+            ++m; m &= 0b11; // buggy m increment
+            ++n;
         }
     }
 }
@@ -425,14 +455,6 @@ void PPU::oam_dma(const std::array<uint8_t, 256> &data)
     {
         uint8_t addr = m_oam_addr + i;
         oam_write(addr, data[i]);
-    }
-}
-
-void PPU::copy_palette_data()
-{
-    for (size_t i { 0 }; i < 0x20; ++i)
-    {
-        m_palette_copy[i] = ppu_read(0x3F00 + i);
     }
 }
 

@@ -92,8 +92,6 @@ uint8_t PPUCtrlRegs::status_read()
         status |= PPU::SpriteOverflow;
     }
 
-    //m_decay &= ~0xE0; m_decay |= (status & 0xE0);
-
     // handle suppression behavior
     if (m_ppu.m_current_line == 241)
     {
@@ -150,11 +148,6 @@ void PPUCtrlRegs::oam_data_write(uint8_t val)
 
 void PPUCtrlRegs::scroll_write(uint8_t val)
 {
-    if (m_ppu.m_current_line == 58)
-    {
-        printf("scroll write on scanline %d of 0x%x, m_w : %d\n", m_ppu.m_current_line, val, m_w);
-        printf("base NT : 0x%x\n", 0x2000 | (m_ppu.m_v & 0x0C00));
-    }
     if (!m_w)
     {
         m_ppu.m_t &= ~0b00000000'00011111;
@@ -200,11 +193,13 @@ void PPUCtrlRegs::data_write(uint8_t val)
         if (palette_index % 4 == 0)
             palette_index %= 0x10; // mirror backdrop colors
         address&=0xFF00; address |= palette_index;
+
+        // directly set palette contents so we don't have to call read() multiple times on each call to render_tile()
+        m_ppu.m_palette_copy[palette_index] = val;
     }
 
     m_ppu.addr_space.write(address, val);
 
-    // FIXME : incorrect behavior during rendering
     if (m_ppu.m_ctrl & PPU::VRAMIncrement32)
     {
         m_ppu.m_v += 32;
@@ -213,8 +208,6 @@ void PPUCtrlRegs::data_write(uint8_t val)
     {
         m_ppu.m_v++;
     }
-
-    //m_ppu.m_v %= 0x4000;
 }
 
 uint8_t PPUCtrlRegs::data_read()
@@ -248,7 +241,6 @@ uint8_t PPUCtrlRegs::data_read()
         m_decay = value;
     }
 
-    // FIXME : incorrect behavior during rendering
     if (m_ppu.m_ctrl & PPU::VRAMIncrement32)
     {
         m_ppu.m_v += 32;
@@ -275,10 +267,6 @@ void PPUCtrlRegs::ctrl_write(uint8_t val)
 
 void PPUCtrlRegs::mask_write(uint8_t val)
 {
-    if (val & 0b11100000) // color emphasis bits
-    {
-        //assert(false); // TODO : log, report as unsupported yet
-    }
     m_ppu.m_mask = val;
 }
 

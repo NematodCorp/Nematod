@@ -48,6 +48,9 @@ static void cpu6502_write(uint16_t addr, uint8_t val)
 }
 }
 
+size_t total_cycles;
+size_t oam_decay_cycles;
+
 RAM<0x0400> nt1, nt2, nt3, nt4;
 InputAdapter input;
 PPU     ppu;
@@ -82,11 +85,12 @@ ParallelStepper stepper{cpu_rcv, ppu_rcv};
 
 void init()
 {
+    oam_decay_cycles = total_cycles = 0;
     cpu_space.clear();
     ppu.addr_space.clear();
 
     ppu.cpu = &cpu;
-    io_regs.m_cpu_co = stepper.m_coroutines[0].co.co;
+    io_regs.m_cpu_co = stepper.m_coroutines[1].co.co;
 
     cpu_space.add_port(memory_port{&nes_ram , 0x0000}); // RAM mirroring
     cpu_space.add_port(memory_port{&nes_ram , 0x0800});
@@ -100,12 +104,14 @@ void init()
 
 void soft_reset()
 {
+    total_cycles = 0;
     cpu.reset(); ppu_regs.reset(); ppu.reset();
     stepper.reset(); // reset coroutines state
 }
 
 void power_cycle()
 {
+    oam_decay_cycles = 0;
     soft_reset();
 }
 
@@ -114,19 +120,26 @@ void run_frame()
     // run until vblank then draw frame to prevent rendering artifacts
     for (size_t i { 0 }; i < (341*4/12)*241; ++i) // cpu clocks per scanline * 241
     {
-        stepper.step_whole();
+        run_cpu_cycle();
     }
 
     // run until scanline 241 is actually reached
     while (ppu.m_current_line != 241)
     {
-        stepper.step_whole();
+        run_cpu_cycle();
     }
 }
 
 void run_cpu_cycle()
 {
     stepper.step_whole();
+    total_cycles += 12; oam_decay_cycles += 12;
+    // handle oam data decay
+    if (oam_decay_cycles >= 12886364) // 600 msec
+    {
+        ppu_regs.clear_decay();
+        oam_decay_cycles = 0;
+    }
 }
 
 void run_ppu_cycle()

@@ -116,7 +116,6 @@ void IORegs::write(address ptr, data value)
 
 void IORegs::oam_dma(uint8_t page)
 {
-    //printf("dma is being done\n");
     // disable cpu for 513 or 514 cycles
     if (m_cpu.cycles % 2) // odd
     {

@@ -44,6 +44,8 @@ void run_frame();
 void run_cpu_cycle();
 void run_ppu_cycle();
 
+extern size_t total_cycles;
+
 // nametables
 extern RAM<0x0400> nt1, nt2, nt3, nt4;
 struct mirroring_config

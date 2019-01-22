@@ -70,6 +70,7 @@ private:
 
     void sprite_evaluation();
     void prefetch_sprites();
+    void do_buggy_overflow_evaluation(uint8_t starting_sprite);
     void fetch_next_tile();
     void render_tile(unsigned tile_idx);
     void do_unused_nt_fetches();
@@ -127,7 +128,10 @@ private:
 
     void    oam_dma(const std::array<uint8_t, 256>& data);
 
-    void copy_palette_data();
+    bool sprite_in_range(uint8_t y_pos) const
+    { return m_current_line >= y_pos &&
+                m_current_line < y_pos + sprite_height() &&
+                y_pos != 255; }
 
     void reset_horizontal_scroll();
     void reset_vertical_scroll();
@@ -143,6 +147,7 @@ private:
     enum OAMAttributes : uint8_t
     {
         Palette         = 0b11,
+        Sprite0         = (1<<3), // not an actual NES flag
         BehindBG        = (1<<5),
         HorizontalFlip  = (1<<6),
         VerticalFlip    = (1<<7)
@@ -173,7 +178,6 @@ public:
 
     bool                        m_suppress_vbl { false };
     bool                        m_skip_cycle { false };
-    bool                        m_sprite0_on_scanline { false };
     unsigned                    m_sprite0_hit_cycle { UINT_MAX };
     unsigned                    m_sprite_overflow_cycle { UINT_MAX };
 

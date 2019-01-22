@@ -98,7 +98,6 @@ void cpu6502::run(unsigned steps)
 
         m_int_delay = false;
 
-
         uint8_t opcode = fetch_opcode();
         cycle(); // first cycle : read opcode, increment PC
 

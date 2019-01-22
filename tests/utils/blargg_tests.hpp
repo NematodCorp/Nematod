@@ -1,7 +1,7 @@
 /*
-vbi_test.cpp
+blargg_tests.hpp
 
-Copyright (c) 19 Yann BOUCHER (yann)
+Copyright (c) 22 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,44 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+#ifndef BLARGG_TESTS_HPP
+#define BLARGG_TESTS_HPP
 
-#include "gtest/gtest.h"
+#include <string>
 
-#include "common/coroutine.hpp"
+bool do_blargg_test(const std::string& rom_path, std::string& output);
 
-#include "tests/utils/blargg_tests.hpp"
-
-struct coroutines_init_wrapper
-{
-    coroutines_init_wrapper()
-    {
-        coroutines_init();
-    }
-};
-static coroutines_init_wrapper co_init_instance;
-
-namespace
-{
-
-const std::string tests[] =
-{
-    "ppu_open_bus.nes",
-};
-
-TEST(Ppu, OpenBusTest)
-{
-    std::string output;
-    for (const auto& test_rom : tests)
-    {
-        if (!do_blargg_test("roms/open_bus/" + test_rom, output))
-        {
-            ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
-                   << "'" << output << "'\n"
-                      ;
-        }
-    }
-}
-
-
-
-}
+#endif // BLARGG_TESTS_HPP

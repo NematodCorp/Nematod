@@ -25,33 +25,26 @@ SOFTWARE.
 
 #include "gtest/gtest.h"
 
-#include "common/coroutine.hpp"
-
 #include "tests/utils/blargg_tests.hpp"
-
-struct coroutines_init_wrapper
-{
-    coroutines_init_wrapper()
-    {
-        coroutines_init();
-    }
-};
-static coroutines_init_wrapper co_init_instance;
 
 namespace
 {
 
 const std::string tests[] =
 {
-    "ppu_open_bus.nes",
+    "01-basics.nes",
+    "02-details.nes",
+    "03-timing.nes",
+    "04-obscure.nes",
+    "05-emulator.nes",
 };
 
-TEST(Ppu, OpenBusTest)
+TEST(Ppu, SpriteOverflowTest)
 {
     std::string output;
     for (const auto& test_rom : tests)
     {
-        if (!do_blargg_test("roms/open_bus/" + test_rom, output))
+        if (!do_blargg_test("roms/sprite_overflow_tests/" + test_rom, output))
         {
             ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
                    << "'" << output << "'\n"
