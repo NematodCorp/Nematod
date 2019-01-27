@@ -40,7 +40,7 @@ memory_port *AddressSpace::find_port(address addr, std::vector<memory_port> &por
 
     it--;
 
-    if(addr < (it->base_address + it->module->size())) {
+    if(it->module->valid() && addr < (it->base_address + it->module->size())) {
 
         return &(*it);
     } else {
@@ -76,7 +76,11 @@ void AddressSpace::clear()
 data AddressSpace::read(address ptr) {
     auto* port = find_port(ptr, m_read_ports);
     if (!port)
+    {
+        printf("open bus at 0x%x\n", ptr);
+        //assert(false);
         return m_last_written_value; // open bus
+    }
     else
         return port->module->read(ptr - port->base_address);
 }
@@ -85,15 +89,23 @@ data AddressSpace::poke(address ptr)
 {
     auto* port = find_port(ptr, m_read_ports);
     if (!port)
+    {
+        printf("open bus at 0x%x\n", ptr);
+        //assert(false);
         return m_last_written_value; // open bus
+    }
     else
         return port->module->poke(ptr - port->base_address);
 }
 
 void AddressSpace::write(address ptr, data value) {
-    auto* port = find_port(ptr, m_read_ports);
+    auto* port = find_port(ptr, m_write_ports);
     if (!port)
+    {
+        printf("open bus at 0x%x\n", ptr);
+        //assert(false);
         m_last_written_value = value; // open bus
+    }
     else
         port->module->write(ptr - port->base_address, value);
 }

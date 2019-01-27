@@ -130,7 +130,7 @@ TEST(Cpu, BlarggInstrTest)
         char filename[64];
         snprintf(filename, 64, "roms/blargg_tests/test-%.2d.nes", i);
 
-        cartdrige_data cart;
+        cartridge_data cart;
         ASSERT_NO_THROW(cart = load_nes_file(filename)) << filename;
 
         memcpy(mem.data() + 0x8000, cart.prg_rom.data(), 0x4000);

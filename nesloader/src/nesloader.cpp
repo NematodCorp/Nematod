@@ -30,9 +30,11 @@ SOFTWARE.
 
 #include <fstream>
 
+#include "common/fsutils.hpp"
+
 void report_error(const std::string& str)
 {
-    throw cartdrige_loader_error(str.c_str());
+    throw cartridge_loader_error(str.c_str());
 }
 
 bool is_nes_file(const std::vector<uint8_t> &file_data)
@@ -42,19 +44,23 @@ bool is_nes_file(const std::vector<uint8_t> &file_data)
     return memcmp(file_data.data(), "NES\x1A", 4) == 0;
 }
 
-cartdrige_data load_nes_file(const std::vector<uint8_t> &file_data)
+cartridge_data load_nes_file(const std::vector<uint8_t> &file_data, const std::string& title)
 {
     assert(is_nes_file(file_data));
 
-    cartdrige_data cart;
+    cartridge_data cart;
+    cart.title = title;
     cart.prg_rom.resize(file_data[4] * 0x4000);
     cart.chr_rom.resize(file_data[5] * 0x2000);
     cart.mapper = (file_data[6] >> 4) | (file_data[7] & 0xF0);
+
     if (file_data[6] & (1<<3))
-        cart.mirroring = cartdrige_data::MirroringType::FourScreen;
+        cart.mirroring = cartridge_data::MirroringType::FourScreen;
     else
-        cart.mirroring = (file_data[6] & 0b1) ? cartdrige_data::Vertical
-                                              : cartdrige_data::Horizontal;
+        cart.mirroring = (file_data[6] & 0b1) ? cartridge_data::Vertical
+                                              : cartridge_data::Horizontal;
+    cart.battery_saved_ram = !!(file_data[6] & (1<<1));
+
 
     if (file_data.size() < 16 + cart.prg_rom.size() + cart.chr_rom.size())
         report_error("invalid iNES file");
@@ -69,11 +75,11 @@ cartdrige_data load_nes_file(const std::vector<uint8_t> &file_data)
     return cart;
 }
 
-cartdrige_data load_nes_file(const std::string &filename)
+cartridge_data load_nes_file(const std::string &path)
 {
-    std::ifstream file(filename);
+    std::ifstream file(path);
     if (!file)
-        report_error("cannot load file '" + filename + "'");
+        report_error("cannot load file '" + path + "'");
 
     file.seekg(0, std::ios::end );
     size_t size = file.tellg();
@@ -81,7 +87,9 @@ cartdrige_data load_nes_file(const std::string &filename)
 
     std::vector<uint8_t> data(size);
     if (!file.read((char*)data.data(), size))
-        report_error("cannot load file '" + filename + "'");
+        report_error("cannot load file '" + path + "'");
 
-    return load_nes_file(data);
+    auto title = std::string{trim_extension(filename(path))};
+
+    return load_nes_file(data, title);
 }

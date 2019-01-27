@@ -27,12 +27,16 @@ SOFTWARE.
 
 #include "clock.hpp"
 #include "common/parallel_stepper.hpp"
+#include "common/fsutils.hpp"
 
 #include "ppu/include/ppu.hpp"
 #include "ppu/include/ppu_regs.hpp"
 #include "cpu/include/cpu.hpp"
 #include "cpu/include/io_regs.hpp"
 #include "input/include/inputadapter.hpp"
+#include "nesloader/include/nesloader.hpp"
+#include "mappers/include/mapper_list.hpp"
+#include "mappers/include/mapper_base.hpp"
 
 namespace NES
 {
@@ -50,8 +54,11 @@ static void cpu6502_write(uint16_t addr, uint8_t val)
 
 size_t total_cycles;
 size_t oam_decay_cycles;
+bool cart_loaded = false;
+cartridge_data cart_data;
 
 RAM<0x0400> nt1, nt2, nt3, nt4;
+Mapper* mapper { nullptr };
 InputAdapter input;
 PPU     ppu;
 PPUCtrlRegs ppu_regs { ppu };
@@ -160,6 +167,77 @@ void set_mirroring(const mirroring_config &config)
     ppu.addr_space.add_port(memory_port{&config.top_right, 0x2400});
     ppu.addr_space.add_port(memory_port{&config.bottom_left, 0x2800});
     ppu.addr_space.add_port(memory_port{&config.bottom_right, 0x2C00});
+}
+
+bool set_mapper(unsigned mapper_idx)
+{
+    if (mapper_idx >= mapper_list.size())
+        return false;
+
+    mapper = mapper_list[mapper_idx];
+    if (mapper == nullptr)
+        return false;
+    else
+        return true;
+}
+
+bool load_cartridge(const std::string &path)
+{
+    auto cart = load_nes_file(path);
+    if (!set_mapper(cart.mapper))
+        return false;
+
+    mapper->init(cart);
+
+    cart_data = cart;
+    cart_loaded = true;
+
+    return true;
+}
+
+bool load_game_battery_save_data()
+{
+    assert(cart_loaded);
+    assert(mapper != nullptr);
+    assert(cart_data.battery_saved_ram);
+
+    const std::string& save_path = cart_data.title + ".sav";
+    if (exists(save_path))
+    {
+        std::ifstream file(save_path);
+
+        std::vector<uint8_t> data(0x2000); // 0x6000-0x7FFF
+        if (!file.read((char*)data.data(), 0x2000))
+        {
+            //report_error("cannot load save file '" + save_path + "'");
+            return false;
+        }
+
+        mapper->load_battery_ram(data);
+    }
+
+    return true;
+}
+
+bool save_game_battery_save_data()
+{
+    assert(cart_loaded);
+    assert(mapper != nullptr);
+    assert(cart_data.battery_saved_ram);
+
+    const std::string& save_path = cart_data.title + ".sav";
+
+    auto data = mapper->save_battery_ram();
+
+    std::ofstream file(save_path);
+
+    if (!file.write((char*)data.data(), 0x2000))
+    {
+        //report_error("cannot load save file '" + save_path + "'");
+        return false;
+    }
+
+    return true;
 }
 
 }

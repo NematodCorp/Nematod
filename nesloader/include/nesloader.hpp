@@ -29,7 +29,7 @@ SOFTWARE.
 #include <vector>
 #include <stdexcept>
 
-struct cartdrige_data
+struct cartridge_data
 {
     enum MirroringType
     {
@@ -38,19 +38,21 @@ struct cartdrige_data
         FourScreen
     };
 
+    std::string          title;
     unsigned             mapper;
     MirroringType        mirroring;
     std::vector<uint8_t> prg_rom;
     std::vector<uint8_t> chr_rom;
+    bool battery_saved_ram;
 };
 
-class cartdrige_loader_error : public std::runtime_error
+class cartridge_loader_error : public std::runtime_error
 {
     using std::runtime_error::runtime_error;
 };
 
 bool           is_nes_file  (const std::vector<uint8_t>& file_data);
-cartdrige_data load_nes_file(const std::vector<uint8_t>& file_data);
-cartdrige_data load_nes_file(const std::string& filename);
+cartridge_data load_nes_file(const std::vector<uint8_t>& file_data, const std::string &title);
+cartridge_data load_nes_file(const std::string& path);
 
 #endif // NESLOADER_HPP

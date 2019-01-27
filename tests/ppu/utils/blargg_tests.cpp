@@ -1,7 +1,7 @@
 /*
-vbi_test.cpp
+blargg_tests.cpp
 
-Copyright (c) 19 Yann BOUCHER (yann)
+Copyright (c) 22 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,42 +23,43 @@ SOFTWARE.
 
 */
 
-#include "gtest/gtest.h"
+#include "blargg_tests.hpp"
 
-#include "utils/blargg_tests.hpp"
+#include <cassert>
 
-namespace
+#include "nes.hpp"
+#include "ppu.hpp"
+#include "inputadapter.hpp"
+#include "standard_controller.hpp"
+#include "nesloader.hpp"
+
+StandardController controller_1;
+
+bool do_blargg_test(const std::string& rom_path, std::string& output)
 {
+    NES::init();
+    assert(NES::load_cartridge(rom_path));
+    NES::input.controller_1 = &controller_1;
 
-const std::string tests[] =
-{
-    "01-vbl_basics.nes",
-    "02-vbl_set_time.nes",
-    "03-vbl_clear_time.nes",
-    "04-nmi_control.nes",
-    "05-nmi_timing.nes",
-    "06-suppression.nes",
-    "07-nmi_on_timing.nes",
-    "08-nmi_off_timing.nes",
-    "09-even_odd_frames.nes",
-    "10-even_odd_timing.nes"
-};
+    NES::power_cycle();
 
-TEST(Ppu, VbiTest)
-{
-    std::string output;
-    for (const auto& test_rom : tests)
+    NES::cpu.write(0x6000, 0x80);
+
+    while(NES::cpu.read(0x6000) == 0x80)
     {
-        output.clear();
-        if (!do_blargg_test("roms/vbi_tests/" + test_rom, output))
-        {
-            ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
-                   << "'" << output << "'\n"
-                      ;
-        }
+        NES::run_cpu_cycle();
     }
-}
 
-
-
+    if (NES::cpu.read(0x6000) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        int txt_idx = 0x6004;
+        char c;
+        while ((c = (char)NES::cpu.read(txt_idx++)))
+            output += c;
+        return false;
+    }
 }

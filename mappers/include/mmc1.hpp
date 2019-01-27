@@ -1,7 +1,7 @@
 /*
-vbi_test.cpp
+mmc1.hpp
 
-Copyright (c) 19 Yann BOUCHER (yann)
+Copyright (c) 23 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,43 +22,39 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+#ifndef MMC1_HPP
+#define MMC1_HPP
 
-#include "gtest/gtest.h"
+#include "mapper_base.hpp"
 
-#include "utils/blargg_tests.hpp"
+#include <vector>
 
-namespace
+class MMC1 : public Mapper
 {
+public:
+    virtual void init(const cartridge_data& cart) override;
 
-const std::string tests[] =
-{
-    "01-vbl_basics.nes",
-    "02-vbl_set_time.nes",
-    "03-vbl_clear_time.nes",
-    "04-nmi_control.nes",
-    "05-nmi_timing.nes",
-    "06-suppression.nes",
-    "07-nmi_on_timing.nes",
-    "08-nmi_off_timing.nes",
-    "09-even_odd_frames.nes",
-    "10-even_odd_timing.nes"
+    void register_write(uint16_t addr, uint8_t val);
+
+    virtual void load_battery_ram(const std::vector<uint8_t>& data) override;
+    virtual std::vector<uint8_t> save_battery_ram() override;
+
+private:
+    void apply_banking();
+
+private:
+    std::vector<uint8_t> prg_rom;
+    std::vector<uint8_t> prg_ram;
+    std::vector<uint8_t> chr_rom;
+
+    uint8_t write_count { 0 };
+    uint8_t shift_register { 0 };
+    uint8_t ctrl_reg { 0 };
+    uint8_t chr0_reg { 0 };
+    uint8_t chr1_reg { 0 };
+    uint8_t prg_reg  { 0 };
+    uint8_t last_write_cycle { 0 };
 };
+extern MMC1 mmc1;
 
-TEST(Ppu, VbiTest)
-{
-    std::string output;
-    for (const auto& test_rom : tests)
-    {
-        output.clear();
-        if (!do_blargg_test("roms/vbi_tests/" + test_rom, output))
-        {
-            ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
-                   << "'" << output << "'\n"
-                      ;
-        }
-    }
-}
-
-
-
-}
+#endif // MMC1_HPP

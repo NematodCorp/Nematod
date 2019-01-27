@@ -1,7 +1,7 @@
 /*
-vbi_test.cpp
+nrom.hpp
 
-Copyright (c) 19 Yann BOUCHER (yann)
+Copyright (c) 23 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,43 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+#ifndef NROM_HPP
+#define NROM_HPP
 
-#include "gtest/gtest.h"
+#include "mapper_base.hpp"
 
-#include "utils/blargg_tests.hpp"
-
-namespace
+class NROM : public Mapper
 {
-
-const std::string tests[] =
-{
-    "01-vbl_basics.nes",
-    "02-vbl_set_time.nes",
-    "03-vbl_clear_time.nes",
-    "04-nmi_control.nes",
-    "05-nmi_timing.nes",
-    "06-suppression.nes",
-    "07-nmi_on_timing.nes",
-    "08-nmi_off_timing.nes",
-    "09-even_odd_frames.nes",
-    "10-even_odd_timing.nes"
+public:
+    virtual void init(const cartridge_data& cart) override;
 };
 
-TEST(Ppu, VbiTest)
-{
-    std::string output;
-    for (const auto& test_rom : tests)
-    {
-        output.clear();
-        if (!do_blargg_test("roms/vbi_tests/" + test_rom, output))
-        {
-            ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
-                   << "'" << output << "'\n"
-                      ;
-        }
-    }
-}
+extern NROM nrom;
 
-
-
-}
+#endif // NROM_HPP

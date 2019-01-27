@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cassert>
 #include <array>
 #include <istream>
 
@@ -19,10 +20,11 @@ public:
 
 class MemoryInterfaceable {
 public:
-    MemoryInterfaceable(std::size_t size) : m_size(size) {};
+    MemoryInterfaceable(std::size_t size) : m_size(size), m_valid(true) {};
     virtual ~MemoryInterfaceable() = default;
 
     std::size_t size() const {return m_size;};
+    bool        valid() const{return m_valid;}
 
     virtual data  read(address offset)             = 0;
     // used to read data without side-effects
@@ -30,7 +32,8 @@ public:
     virtual void write(address offset, data value) = 0;
 
 protected:
-    const std::size_t m_size;
+    std::size_t m_size;
+    bool        m_valid;
 };
 
 struct memory_port {
@@ -72,3 +75,53 @@ public:
 public:
     std::array<data, t_size> m_data;
 };
+
+template <size_t t_size, bool writeable>
+struct BankWindow : public MemoryInterfaceable
+{
+public:
+    BankWindow() : MemoryInterfaceable(t_size) {}
+
+    void set_rom_base(data* in_rom_base, size_t in_rom_size)
+    {
+        assert(in_rom_size % t_size == 0); // assert that rom_size is a multiple of bank_size
+
+        rom_base = rom_ptr = in_rom_base;
+        rom_bank_count = in_rom_size / t_size;
+    }
+
+    void set_bank(size_t bank_number)
+    {
+        if (bank_number >= rom_bank_count)
+        {
+            m_valid = false; // mark this memory region as invalid to enable open bus behavior
+        }
+        else
+        {
+            m_valid = t_size;
+            rom_ptr = rom_base + bank_number*t_size;
+        }
+    }
+
+    size_t bank_count() const
+    { return rom_bank_count; }
+
+    virtual data  read(address offset) {return rom_ptr[offset];};
+    void write(address addr, data val)
+    {
+        if constexpr (writeable)
+        {
+            rom_ptr[addr] = val;
+        }
+    };
+private:
+    data* rom_base { nullptr };
+    size_t rom_bank_count { 0 };
+
+    data* rom_ptr { nullptr };
+};
+
+template <size_t t_size>
+using ROMBankWindow = BankWindow<t_size, false>;
+template <size_t t_size>
+using RAMBankWindow = BankWindow<t_size, true>;

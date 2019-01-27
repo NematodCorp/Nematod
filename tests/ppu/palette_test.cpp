@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include "common/coroutine.hpp"
 
-#include "tests/utils/blargg_tests.hpp"
+#include "utils/blargg_tests.hpp"
 
 namespace
 {
@@ -42,6 +42,7 @@ TEST(Ppu, PaletteTest)
 //    std::string output;
 //    for (const auto& test_rom : tests)
 //    {
+//  output.clear();
 //        if (!do_blargg_test("roms/open_bus/" + test_rom, output))
 //        {
 //            ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"

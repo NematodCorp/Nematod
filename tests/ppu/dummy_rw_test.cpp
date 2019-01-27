@@ -25,36 +25,40 @@ SOFTWARE.
 
 #include "gtest/gtest.h"
 
+#include "common/coroutine.hpp"
+
 #include "utils/blargg_tests.hpp"
+
+struct coroutines_init_wrapper
+{
+    coroutines_init_wrapper()
+    {
+        coroutines_init();
+    }
+};
+static coroutines_init_wrapper co_init_instance;
 
 namespace
 {
 
 const std::string tests[] =
 {
-    "01-vbl_basics.nes",
-    "02-vbl_set_time.nes",
-    "03-vbl_clear_time.nes",
-    "04-nmi_control.nes",
-    "05-nmi_timing.nes",
-    "06-suppression.nes",
-    "07-nmi_on_timing.nes",
-    "08-nmi_off_timing.nes",
-    "09-even_odd_frames.nes",
-    "10-even_odd_timing.nes"
+    "cpu_dummy_reads.nes",
+    "cpu_dummy_writes_oam.nes",
+    "cpu_dummy_writes_ppumem.nes",
 };
 
-TEST(Ppu, VbiTest)
+TEST(Ppu, DummyRWTest)
 {
     std::string output;
     for (const auto& test_rom : tests)
     {
         output.clear();
-        if (!do_blargg_test("roms/vbi_tests/" + test_rom, output))
+        if (!do_blargg_test("roms/dummy_rw/" + test_rom, output))
         {
             ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
-                   << "'" << output << "'\n"
-                      ;
+                          << "'" << output << "'\n"
+                             ;
         }
     }
 }

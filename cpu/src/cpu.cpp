@@ -98,6 +98,9 @@ void cpu6502::run(unsigned steps)
 
         m_int_delay = false;
 
+
+        //printf("instruction '%s' at 0x%x\n", opcode_mnemos[read(state.pc)], state.pc);
+
         uint8_t opcode = fetch_opcode();
         cycle(); // first cycle : read opcode, increment PC
 

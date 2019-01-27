@@ -32,6 +32,8 @@ class PPU;
 class PPUCtrlRegs;
 class cpu6502;
 class IORegs;
+class Mapper;
+struct cartridge_data;
 
 namespace NES
 {
@@ -44,6 +46,29 @@ void run_frame();
 void run_cpu_cycle();
 void run_ppu_cycle();
 
+bool load_game_battery_save_data();
+bool save_game_battery_save_data();
+
+// actually report errors
+bool load_cartridge(const std::string& path);
+
+bool set_mapper   (unsigned mapper_idx);
+void set_mirroring(const struct mirroring_config& config);
+
+extern Mapper*      mapper;
+extern InputAdapter input;
+extern PPU     ppu;
+extern PPUCtrlRegs ppu_regs;
+extern cpu6502 cpu;
+extern IORegs io_regs;
+
+extern AddressSpace cpu_space;
+
+extern RAM<0x0800> nes_ram;
+extern RAM<0x0100> palette_ram;
+
+extern bool           cart_loaded;
+extern cartridge_data cart_data;
 extern size_t total_cycles;
 
 // nametables
@@ -57,18 +82,8 @@ struct mirroring_config
 inline mirroring_config horizontal { nt1, nt1, nt2, nt2 };
 inline mirroring_config vertical   { nt1, nt2, nt1, nt2 };
 inline mirroring_config fourscreen { nt1, nt2, nt3, nt4 };
-void set_mirroring(const mirroring_config& config);
-
-extern InputAdapter input;
-extern PPU     ppu;
-extern PPUCtrlRegs ppu_regs;
-extern cpu6502 cpu;
-extern IORegs io_regs;
-
-extern AddressSpace cpu_space;
-
-extern RAM<0x0800> nes_ram;
-extern RAM<0x0100> palette_ram;
+inline mirroring_config onescreen_nt1  { nt1, nt1, nt1, nt1 };
+inline mirroring_config onescreen_nt2  { nt2, nt2, nt2, nt2 };
 
 }
 

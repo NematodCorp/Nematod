@@ -9,4 +9,4 @@ file(GLOB_RECURSE header_files "include/*.hpp" "include/*.def" "src/*.hpp")
 
 add_library(core STATIC ${header_files} ${source_files})
 
-target_link_libraries(core gtest_main gtest rt pthread libaco memory interrupts clock cpu_cycle_co ppu input)
+target_link_libraries(core gtest_main gtest rt pthread libaco memory interrupts clock cpu_cycle_co ppu input mappers)

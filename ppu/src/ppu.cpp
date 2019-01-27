@@ -278,7 +278,9 @@ void PPU::render_tile(unsigned tile_idx)
 
 void PPU::do_unused_nt_fetches()
 {
-    uint16_t nt_addr = 0x2000 | (m_v & ~FineYScroll);
+    const uint16_t v = vram_addr();
+
+    uint16_t nt_addr = 0x2000 | (v & ~FineYScroll);
 
     ppu_read(nt_addr); cycle(1); // dummy NT read
 
@@ -375,10 +377,12 @@ void PPU::do_buggy_overflow_evaluation(uint8_t starting_sprite)
 
 void PPU::prefetch_sprites()
 {
-    uint16_t nt_addr = 0x2000 | (m_v & ~FineYScroll);
+    uint16_t v = vram_addr();
+
+    uint16_t nt_addr = 0x2000 | (v & ~FineYScroll);
     // coarse scrolling registers are divided by 4 because attribute tables indexes 4x4 tile blocks
     /*               */ /*base*/ /* nametable */  /*  coarse y / 4 */   /*  coarse x / 4 */
-    uint16_t attr_addr = 0x23C0 | (m_v & 0x0C00) | ((m_v >> 4) & 0x38) | ((m_v >> 2) & 0x07);
+    uint16_t attr_addr = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
 
     for (size_t i { 0 }; i < 8; ++i)
     {
@@ -390,7 +394,7 @@ void PPU::prefetch_sprites()
         else
             addr = ((m_ctrl&SpriteTableAddr) ? 0x1000 : 0x0000) + (data.tile_index * 0x10);
 
-        unsigned sprY = m_current_line - data.y_pos;  // Line inside the sprite.
+        uint8_t sprY = m_current_line - data.y_pos;  // Line inside the sprite.
         if (data.attributes & VerticalFlip) sprY ^= sprite_height() - 1;      // Vertical flip.
         addr += sprY + (sprY & 8);  // Select the second tile if on 8x16.
 
@@ -417,23 +421,28 @@ void PPU::prefetch_sprites()
 void PPU::fetch_next_tile()
 {
     constexpr uint16_t bg_base[2] = {0x0000, 0x1000};
+    uint16_t v = vram_addr();
 
-    int coarse_x = m_v & CoarseX;
-    int coarse_y = (m_v & CoarseY) >> 5;
+    int coarse_x = v & CoarseX;
+    int coarse_y = (v & CoarseY) >> 5;
 
-    uint16_t nt_addr = 0x2000 | (m_v & ~FineYScroll);
+    uint16_t nt_addr = 0x2000 | (v & ~FineYScroll);
+
+
+    uint8_t nt_byte   = ppu_read(nt_addr  );
+    uint16_t pattern_addr = nt_byte*0x10 + bg_base[(m_ctrl>>4)&0b1] + ((v & FineYScroll) >> 12);
+    cycle(2);
+
+    v = vram_addr();
     // coarse scrolling registers are divided by 4 because attribute tables indexes 4x4 tile blocks
     /*               */ /*base*/ /* nametable */  /*  coarse  y/4  */   /*  coarse  x/4  */
-    uint16_t attr_addr = 0x23C0 | (m_v & 0x0C00) | ((m_v >> 4) & 0x38) | ((m_v >> 2) & 0x07);
-    //uint16_t attr_addr = 0x23C0 | (m_v & 0x0C00) | ((coarse_y/4)<<3) | (coarse_x/4);
+    uint16_t attr_addr = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
 
-    uint8_t nt_byte   = ppu_read(nt_addr  ); cycle(2);
-    uint8_t attr_byte = ppu_read(attr_addr); cycle(2);
 
-    uint16_t pattern_addr = nt_byte*0x10 + bg_base[(m_ctrl>>4)&0b1] + ((m_v & FineYScroll) >> 12);
+    uint8_t attr_byte = ppu_read(attr_addr); cycle(1);
 
     m_prefetched_bg_lo = ppu_read(pattern_addr  ); cycle(2);
-    m_prefetched_bg_hi = ppu_read(pattern_addr+8); cycle(2);
+    m_prefetched_bg_hi = ppu_read(pattern_addr+8); cycle(3);
 
     if (coarse_y & 0b10)
         attr_byte >>= 4;
@@ -502,7 +511,6 @@ void PPU::y_increment()
         }
         else if (coarse_y == 31) // the user code set coarse_y to an invalid value; ignore flips
         {
-            printf("Coarse Y was set to an invalid value\n"); // FIXME : log
             coarse_y = 0;
         }
         else
@@ -524,5 +532,9 @@ void PPU::set_unread_flags()
     if (m_sprite_overflow_cycle != UINT_MAX)
     {
         m_sprite_overflow_cycle = 0;
+    }
+    if (m_delayed_vram_cycle != UINT_MAX)
+    {
+        m_delayed_vram_cycle = 0;
     }
 }

@@ -178,7 +178,10 @@ void PPUCtrlRegs::addr_write(uint8_t val)
     {
         m_ppu.m_t &= 0b11111111'00000000;
                 m_ppu.m_t |= val;
+        m_ppu.m_delayed_vram_addr = m_ppu.m_t;
+        m_ppu.m_delayed_vram_cycle = m_ppu.m_clocks+2;
         m_ppu.m_v = m_ppu.m_t;
+
         m_w = false;
     }
 }
@@ -235,6 +238,11 @@ uint8_t PPUCtrlRegs::data_read()
     }
     else
     {
+        if (address >= 0x3000) // do 0x3000-0x3EFF mirroring
+        {
+            address -= 0x1000;
+        }
+
         value = m_read_buffer;
         m_read_buffer = m_ppu.addr_space.read(address);
 

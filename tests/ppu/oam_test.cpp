@@ -32,25 +32,17 @@ namespace
 
 const std::string tests[] =
 {
-    "01-vbl_basics.nes",
-    "02-vbl_set_time.nes",
-    "03-vbl_clear_time.nes",
-    "04-nmi_control.nes",
-    "05-nmi_timing.nes",
-    "06-suppression.nes",
-    "07-nmi_on_timing.nes",
-    "08-nmi_off_timing.nes",
-    "09-even_odd_frames.nes",
-    "10-even_odd_timing.nes"
+    "oam_read.nes",
+    //"oam_stress.nes", // really long test
 };
 
-TEST(Ppu, VbiTest)
+TEST(Ppu, OAMTest)
 {
     std::string output;
     for (const auto& test_rom : tests)
     {
         output.clear();
-        if (!do_blargg_test("roms/vbi_tests/" + test_rom, output))
+        if (!do_blargg_test("roms/oam_tests/" + test_rom, output))
         {
             ADD_FAILURE() << "Test '" << test_rom << "' failed : \n"
                    << "'" << output << "'\n"

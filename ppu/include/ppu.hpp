@@ -29,6 +29,7 @@ SOFTWARE.
 #include <climits>
 #include <array>
 
+// TODO : implement peek-poke
 // TODO : fix these ugly includes
 #include "memory/include/memory.hpp"
 #include "interrupts/include/interrupts.hpp"
@@ -45,11 +46,17 @@ public:
     std::array<uint8_t, 240*256> framebuffer;
     unsigned frames { 0 };
 
+    // ABGR format
     constexpr static std::array<uint32_t, 0x40> ppu_palette =
-    {0x545454, 0x001E74, 0x081090, 0x300088, 0x440064, 0x5C0030, 0x540400, 0x3C1800, 0x202A00, 0x083A00, 0x004000, 0x003C00, 0x00323C, 0x000000, 0x000000, 0x000000,
-     0x989698, 0x084CC4, 0x3032EC, 0x5C1EE4, 0x8814B0, 0xA01464, 0x982220, 0x783C00, 0x545A00, 0x287200, 0x087C00, 0x007628, 0x006678, 0x000000, 0x000000, 0x000000,
-     0xECEEEC, 0x4C9AEC, 0x787CEC, 0xB062EC, 0xE454EC, 0xEC58B4, 0xEC6A64, 0xD48820, 0xA0AA00, 0x74C400, 0x4CD020, 0x38CC6C, 0x38B4CC, 0x3C3C3C, 0x000000, 0x000000,
-     0xECEEEC, 0xA8CCEC, 0xBCBCEC, 0xD4B2EC, 0xECAEEC, 0xECAED4, 0xECB4B0, 0xE4C490, 0xCCD278, 0xB4DE78, 0xA8E290, 0x98E2B4, 0xA0D6E4, 0xA0A2A0, 0x000000, 0x000000, };
+    { 0xff7c7c7c,
+    0xfffc0000, 0xffbc0000, 0xffbc2844, 0xff840094, 0xff2000a8, 0xff0010a8, 0xff001488, 0xff003050,
+    0xff007800, 0xff006800, 0xff005800, 0xff584000, 0xff000000, 0xff000000, 0xff000000, 0xffbcbcbc,
+    0xfff87800, 0xfff85800, 0xfffc4468, 0xffcc00d8, 0xff5800e4, 0xff0038f8, 0xff105ce4, 0xff007cac,
+    0xff00b800, 0xff00a800, 0xff44a800, 0xff888800, 0xff000000, 0xff000000, 0xff000000, 0xfff8f8f8,
+    0xfffcbc3c, 0xfffc8868, 0xfff87898, 0xfff878f8, 0xff9858f8, 0xff5878f8, 0xff44a0fc, 0xff00b8f8,
+    0xff18f8b8, 0xff54d858, 0xff98f858, 0xffd8e800, 0xff787878, 0xff000000, 0xff000000, 0xfffcfcfc,
+    0xfffce4a4, 0xfff8b8b8, 0xfff8b8d8, 0xfff8b8f8, 0xffc0a4f8, 0xffb0d0f0, 0xffa8e0fc, 0xff78d8f8,
+    0xff78f8d8, 0xffb8f8b8, 0xffd8f8b8, 0xfffcfc00, 0xfff8d8f8, 0xff000000, 0xff000000 };
 
 
 public:
@@ -61,6 +68,10 @@ public:
 private:
     unsigned sprite_height() const
     { return (m_ctrl & SpriteSize8x16) ? 16 : 8; }
+    uint16_t vram_addr()
+    {
+        return m_v;
+    }
 
     uint8_t ppu_read(uint16_t addr)
     {
@@ -174,12 +185,16 @@ public:
     uint16_t                    m_t { 0 };
     uint8_t                     m_x { 0 };
 
+    uint16_t                    m_delayed_vram_addr { 0 };
+
     uint8_t                     m_oam_addr { 0 };
 
     bool                        m_suppress_vbl { false };
     bool                        m_skip_cycle { false };
+
     unsigned                    m_sprite0_hit_cycle { UINT_MAX };
     unsigned                    m_sprite_overflow_cycle { UINT_MAX };
+    unsigned                    m_delayed_vram_cycle { UINT_MAX };
 
     uint16_t                    m_tile_bmp_lo;
     uint16_t                    m_tile_bmp_hi;

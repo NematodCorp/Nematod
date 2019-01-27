@@ -1,7 +1,7 @@
 /*
-blargg_tests.cpp
+nrom.cpp
 
-Copyright (c) 22 Yann BOUCHER (yann)
+Copyright (c) 23 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,31 +23,22 @@ SOFTWARE.
 
 */
 
-#include "blargg_tests.hpp"
+#include "nrom.hpp"
+
+#include <cstring>
 
 #include "nes.hpp"
-#include "ppu.hpp"
-#include "inputadapter.hpp"
-#include "standard_controller.hpp"
-#include "nesloader.hpp"
+#include "ppu/include/ppu.hpp"
 
-RAM<0x400 > ppu_nt1;
-RAM<0x400 > ppu_nt2;
-ROM<0x8000> prg_rom;
-ROM<0x2000> chr_rom;
-RAM<0x2000> chr_ram;
-RAM<0x2000> crt_ram;
+static ROM<0x8000> prg_rom;
+static ROM<0x2000> chr_rom;
+static RAM<0x2000> chr_ram;
+static RAM<0x2000> crt_ram;
 
-StandardController controller_1;
+NROM nrom;
 
-bool do_blargg_test(const std::string& rom_path, std::string& output)
+void NROM::init(const cartridge_data& cart)
 {
-    cartdrige_data cart;
-    cart = load_nes_file(rom_path);
-
-    NES::init();
-    NES::input.controller_1 = &controller_1;
-
     memcpy(prg_rom.m_data.data(), cart.prg_rom.data(), cart.prg_rom.size());
     if (cart.prg_rom.size() == 0x4000)
     {
@@ -65,36 +56,13 @@ bool do_blargg_test(const std::string& rom_path, std::string& output)
     else
         NES::ppu.addr_space.add_port(memory_port{&chr_ram, 0x0000});
 
-    if (cart.mirroring == cartdrige_data::Horizontal)
+    if (cart.mirroring == cartridge_data::Horizontal)
     {
         NES::set_mirroring(NES::horizontal);
     }
-    else if (cart.mirroring == cartdrige_data::Vertical)
+    else if (cart.mirroring == cartridge_data::Vertical)
     {
         // V-mirroring
         NES::set_mirroring(NES::vertical);
-    }
-
-    NES::power_cycle();
-
-    crt_ram.m_internal[0x0] = 0x80;
-
-
-
-    while(crt_ram.m_internal[0x0] == 0x80)
-    {
-        NES::run_cpu_cycle();
-        //NES::run_frame();
-    }
-
-    output = std::string((char*)&crt_ram.m_internal[0x4]);
-
-    if (crt_ram.m_internal[0x0] == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
     }
 }
