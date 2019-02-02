@@ -92,7 +92,6 @@ void PPU::reset()
 template <PPU::ScanlineType Type>
 void PPU::scanline()
 {
-    //printf("scanline %d : addr : m_v : 0x%x\n", m_current_line, m_v&0x0C00);
     if constexpr (Type == PreRender)
     {
         m_status &= (~(Sprite0Hit)); // clear sprite 0 flag on first cycle (why ? no idea, but passes timing tests)
@@ -343,7 +342,9 @@ void PPU::sprite_evaluation()
         {
             m_secondary_oam[found_sprites] = m_oam_memory[i];
             if (i == 0) // mark as sprite 0
+            {
                 m_secondary_oam[found_sprites].attributes |= Sprite0;
+            }
             else
                 m_secondary_oam[found_sprites].attributes &= ~Sprite0;
             ++found_sprites;
@@ -456,6 +457,9 @@ void PPU::fetch_next_tile()
     {
         coarse_x_increment();
     }
+
+    //    if (nt_byte == 0x3A)
+    //        printf("tile 0x3A, pattern 0x%x/0x%x, scanline %d\n", m_prefetched_bg_lo, m_prefetched_bg_hi, m_current_line);
 }
 
 void PPU::oam_dma(const std::array<uint8_t, 256> &data)

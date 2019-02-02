@@ -33,10 +33,14 @@ SOFTWARE.
 #include "standard_controller.hpp"
 #include "nesloader.hpp"
 
+#include "common/log.hpp"
+
 StandardController controller_1;
 
 bool do_blargg_test(const std::string& rom_path, std::string& output)
 {
+    global_logger.filter(WARNING);
+
     NES::init();
     assert(NES::load_cartridge(rom_path));
     NES::input.controller_1 = &controller_1;

@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cassert>
 
+#include "common/log.hpp"
+
 #include "memory.hpp"
 
 void AddressSpace::add_port_impl(memory_port port, std::vector<memory_port> &port_list)
@@ -77,7 +79,7 @@ data AddressSpace::read(address ptr) {
     auto* port = find_port(ptr, m_read_ports);
     if (!port)
     {
-        printf("open bus at 0x%x\n", ptr);
+        info("open bus at 0x%x\n", ptr);
         //assert(false);
         return m_last_written_value; // open bus
     }
@@ -90,7 +92,7 @@ data AddressSpace::poke(address ptr)
     auto* port = find_port(ptr, m_read_ports);
     if (!port)
     {
-        printf("open bus at 0x%x\n", ptr);
+        info("open bus at 0x%x\n", ptr);
         //assert(false);
         return m_last_written_value; // open bus
     }
@@ -102,7 +104,7 @@ void AddressSpace::write(address ptr, data value) {
     auto* port = find_port(ptr, m_write_ports);
     if (!port)
     {
-        printf("open bus at 0x%x\n", ptr);
+        info("open bus at 0x%x\n", ptr);
         //assert(false);
         m_last_written_value = value; // open bus
     }

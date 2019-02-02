@@ -41,7 +41,8 @@ int main()
     coroutines_init();
 
     NES::init();
-    NES::load_cartridge("roms/zelda.nes");
+    NES::load_cartridge("roms/gradius.nes");
+
     NES::input.controller_1 = &controller_1;
 
     if (NES::cart_data.battery_saved_ram)

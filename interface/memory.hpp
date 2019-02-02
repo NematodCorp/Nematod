@@ -25,6 +25,8 @@ public:
 
     std::size_t size() const {return m_size;};
     bool        valid() const{return m_valid;}
+    void        set_valid(bool valid)
+    { m_valid = valid; }
 
     virtual data  read(address offset)             = 0;
     // used to read data without side-effects

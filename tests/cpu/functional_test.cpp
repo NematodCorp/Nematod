@@ -46,10 +46,6 @@ static uint8_t cpu6502_read(uint16_t addr)
 static void cpu6502_write(uint16_t addr, uint8_t val)
 {
     mem[addr] = val;
-    if (addr >= 0x8000)
-    {
-        printf("MMC1 reg access ? 0x%x\n", addr);
-    }
 }
 
 

@@ -40,9 +40,16 @@ struct cartridge_data
 
     std::string          title;
     unsigned             mapper;
+    unsigned             submapper;
     MirroringType        mirroring;
+    unsigned long        prg_rom_size;
+    unsigned long        chr_rom_size;
     std::vector<uint8_t> prg_rom;
     std::vector<uint8_t> chr_rom;
+    unsigned long        prg_ram_size;
+    unsigned long        nvram_size;
+    unsigned long        chr_ram_size;
+    unsigned long        chr_nvram_size;
     bool battery_saved_ram;
 };
 

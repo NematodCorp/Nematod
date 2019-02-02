@@ -1,7 +1,7 @@
 /*
-mmc1.hpp
+screen_crc.hpp
 
-Copyright (c) 23 Yann BOUCHER (yann)
+Copyright (c) 29 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,40 +22,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef MMC1_HPP
-#define MMC1_HPP
+#ifndef SCREEN_CRC_HPP
+#define SCREEN_CRC_HPP
 
-#include "mapper_base.hpp"
+#include "nes.hpp"
+#include "ppu.hpp"
 
-#include <vector>
+/* CRC-32C (iSCSI) polynomial in reversed bit order. */
+#define POLY 0x82f63b78
 
-class MMC1 : public Mapper
+// CRC32C
+inline uint32_t crc32c(uint32_t crc, const unsigned char *buf, size_t len)
 {
-public:
-    virtual void init(const cartridge_data& cart) override;
+    int k;
 
-    void register_write(uint16_t addr, uint8_t val);
+    crc = ~crc;
+    while (len--) {
+        crc ^= *buf++;
+        for (k = 0; k < 8; k++)
+            crc = crc & 1 ? (crc >> 1) ^ POLY : crc >> 1;
+    }
+    return ~crc;
+}
 
-    virtual void load_battery_ram(const std::vector<uint8_t>& data) override;
-    virtual std::vector<uint8_t> save_battery_ram() override;
+inline uint32_t screen_crc32()
+{
+    return crc32c(0, NES::ppu.framebuffer.data(), 240*256);
+}
 
-private:
-    void apply_banking();
-
-private:
-    std::vector<uint8_t> prg_rom;
-    std::vector<uint8_t> prg_ram;
-    std::vector<uint8_t> chr_rom;
-
-    bool    handle_bus_conflicts { false };
-    uint8_t write_count { 0 };
-    uint8_t shift_register { 0 };
-    uint8_t ctrl_reg { 0 };
-    uint8_t chr0_reg { 0 };
-    uint8_t chr1_reg { 0 };
-    uint8_t prg_reg  { 0 };
-    uint8_t last_write_cycle { 0 };
-};
-extern MMC1 mmc1;
-
-#endif // MMC1_HPP
+#endif // SCREEN_CRC_HPP

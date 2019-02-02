@@ -1,7 +1,7 @@
 /*
-mmc1.hpp
+cnrom.hpp
 
-Copyright (c) 23 Yann BOUCHER (yann)
+Copyright (c) 30 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,40 +22,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef MMC1_HPP
-#define MMC1_HPP
 
 #include "mapper_base.hpp"
 
 #include <vector>
 
-class MMC1 : public Mapper
+class CNROM : public Mapper
 {
 public:
     virtual void init(const cartridge_data& cart) override;
 
     void register_write(uint16_t addr, uint8_t val);
 
-    virtual void load_battery_ram(const std::vector<uint8_t>& data) override;
-    virtual std::vector<uint8_t> save_battery_ram() override;
-
 private:
-    void apply_banking();
+    bool    handle_bus_conflicts { true };
 
-private:
-    std::vector<uint8_t> prg_rom;
-    std::vector<uint8_t> prg_ram;
     std::vector<uint8_t> chr_rom;
-
-    bool    handle_bus_conflicts { false };
-    uint8_t write_count { 0 };
-    uint8_t shift_register { 0 };
-    uint8_t ctrl_reg { 0 };
-    uint8_t chr0_reg { 0 };
-    uint8_t chr1_reg { 0 };
-    uint8_t prg_reg  { 0 };
-    uint8_t last_write_cycle { 0 };
 };
-extern MMC1 mmc1;
-
-#endif // MMC1_HPP
+extern CNROM cnrom;

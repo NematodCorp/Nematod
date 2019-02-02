@@ -1,7 +1,7 @@
 /*
-mmc1.hpp
+blargg_tests.cpp
 
-Copyright (c) 23 Yann BOUCHER (yann)
+Copyright (c) 22 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,40 +22,44 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef MMC1_HPP
-#define MMC1_HPP
 
-#include "mapper_base.hpp"
+#include "blargg_tests.hpp"
 
-#include <vector>
+#include <cassert>
 
-class MMC1 : public Mapper
+#include "nes.hpp"
+#include "ppu.hpp"
+#include "inputadapter.hpp"
+#include "standard_controller.hpp"
+#include "nesloader.hpp"
+
+StandardController controller_1;
+
+bool do_blargg_test(const std::string& rom_path, std::string& output)
 {
-public:
-    virtual void init(const cartridge_data& cart) override;
+    NES::init();
+    assert(NES::load_cartridge(rom_path));
+    NES::input.controller_1 = &controller_1;
 
-    void register_write(uint16_t addr, uint8_t val);
+    NES::power_cycle();
 
-    virtual void load_battery_ram(const std::vector<uint8_t>& data) override;
-    virtual std::vector<uint8_t> save_battery_ram() override;
+    NES::cpu.write(0x6000, 0x80);
 
-private:
-    void apply_banking();
+    while(NES::cpu.read(0x6000) == 0x80)
+    {
+        NES::run_cpu_cycle();
+    }
 
-private:
-    std::vector<uint8_t> prg_rom;
-    std::vector<uint8_t> prg_ram;
-    std::vector<uint8_t> chr_rom;
-
-    bool    handle_bus_conflicts { false };
-    uint8_t write_count { 0 };
-    uint8_t shift_register { 0 };
-    uint8_t ctrl_reg { 0 };
-    uint8_t chr0_reg { 0 };
-    uint8_t chr1_reg { 0 };
-    uint8_t prg_reg  { 0 };
-    uint8_t last_write_cycle { 0 };
-};
-extern MMC1 mmc1;
-
-#endif // MMC1_HPP
+    if (NES::cpu.read(0x6000) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        int txt_idx = 0x6004;
+        char c;
+        while ((c = (char)NES::cpu.read(txt_idx++)))
+            output += c;
+        return false;
+    }
+}

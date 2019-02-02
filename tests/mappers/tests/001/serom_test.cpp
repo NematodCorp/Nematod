@@ -1,7 +1,7 @@
 /*
-mmc1.hpp
+vbi_test.cpp
 
-Copyright (c) 23 Yann BOUCHER (yann)
+Copyright (c) 19 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,40 +22,45 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef MMC1_HPP
-#define MMC1_HPP
 
-#include "mapper_base.hpp"
+#include "gtest/gtest.h"
 
-#include <vector>
+#include "common/coroutine.hpp"
 
-class MMC1 : public Mapper
+#include "nes.hpp"
+
+#include "../../utils/screen_crc.hpp"
+
+struct coroutines_init_wrapper
 {
-public:
-    virtual void init(const cartridge_data& cart) override;
-
-    void register_write(uint16_t addr, uint8_t val);
-
-    virtual void load_battery_ram(const std::vector<uint8_t>& data) override;
-    virtual std::vector<uint8_t> save_battery_ram() override;
-
-private:
-    void apply_banking();
-
-private:
-    std::vector<uint8_t> prg_rom;
-    std::vector<uint8_t> prg_ram;
-    std::vector<uint8_t> chr_rom;
-
-    bool    handle_bus_conflicts { false };
-    uint8_t write_count { 0 };
-    uint8_t shift_register { 0 };
-    uint8_t ctrl_reg { 0 };
-    uint8_t chr0_reg { 0 };
-    uint8_t chr1_reg { 0 };
-    uint8_t prg_reg  { 0 };
-    uint8_t last_write_cycle { 0 };
+    coroutines_init_wrapper()
+    {
+        coroutines_init();
+    }
 };
-extern MMC1 mmc1;
+static coroutines_init_wrapper co_init_instance;
 
-#endif // MMC1_HPP
+constexpr uint32_t crc_pass { 0x46d0a62e };
+
+namespace
+{
+
+TEST(Ppu, SEROMTest)
+{
+    NES::init();
+    assert(NES::load_cartridge("roms/001/serom.nes"));
+
+    NES::power_cycle();
+
+    // run for ten frames
+    for (size_t i { 0 }; i < 10; ++i)
+    {
+        NES::run_frame();
+    }
+
+    EXPECT_EQ(screen_crc32(), crc_pass);
+}
+
+
+
+}

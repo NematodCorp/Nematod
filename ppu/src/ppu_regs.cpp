@@ -151,7 +151,7 @@ void PPUCtrlRegs::scroll_write(uint8_t val)
     if (!m_w)
     {
         m_ppu.m_t &= ~0b00000000'00011111;
-        m_ppu.m_t |= (uint16_t)(val)>>3;
+                m_ppu.m_t |= (uint16_t)(val)>>3;
 
         m_ppu.m_x = val&0b111;
         m_w = true;
@@ -171,7 +171,8 @@ void PPUCtrlRegs::addr_write(uint8_t val)
     if (!m_w)
     {
         m_ppu.m_t &= 0b00000000'11111111;
-                m_ppu.m_t |= ((uint16_t)(val&0b0111111))<<8;
+        m_ppu.m_t |= ((uint16_t)(val&0b0111111))<<8;
+
         m_w = true;
     }
     else
@@ -199,6 +200,11 @@ void PPUCtrlRegs::data_write(uint8_t val)
 
         // directly set palette contents so we don't have to call read() multiple times on each call to render_tile()
         m_ppu.m_palette_copy[palette_index] = val;
+    }
+    else if ((address&0xF000) == 0x3000) // do 0x3000-0x3EFF mirroring
+
+    {
+        address -= 0x1000;
     }
 
     m_ppu.addr_space.write(address, val);
@@ -238,7 +244,7 @@ uint8_t PPUCtrlRegs::data_read()
     }
     else
     {
-        if (address >= 0x3000) // do 0x3000-0x3EFF mirroring
+        if ((address&0xF000) == 0x3000) // do 0x3000-0x3EFF mirroring
         {
             address -= 0x1000;
         }
@@ -259,15 +265,13 @@ uint8_t PPUCtrlRegs::data_read()
     }
 
     return value;
-
-    // m_ppu.m_v %= 0x4000;
 }
 
 void PPUCtrlRegs::ctrl_write(uint8_t val)
 {
     m_ppu.m_ctrl = val;
-    m_ppu.m_t   &= ~0b1100'00000000;
-    m_ppu.m_t   |= (val&11) << 10; // set base scrolling nametable
+    m_ppu.m_t   &= ~0b0001100'00000000;
+            m_ppu.m_t   |= (val&0b11) << 10; // set base scrolling nametable
 
     if (m_ppu.m_clocks > 1) // passes nmi_on_timing.nes
         m_ppu.update_nmi_logic();
