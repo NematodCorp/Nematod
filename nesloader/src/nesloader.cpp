@@ -90,9 +90,10 @@ cartridge_data load_nes_file(const std::vector<uint8_t> &file_data, const std::s
 
     cartridge_data cart;
     cart.title = title;
-    cart.prg_rom_size = file_data[4] * 0x4000;
+    // 0 means 256
+    cart.prg_rom_size = (file_data[4]?:256) * 0x4000;
     cart.chr_rom_size = file_data[5] * 0x2000;
-    cart.mapper = (file_data[6] >> 4) | (file_data[7] & 0xF0);
+    cart.mapper = (file_data[6] >> 4);
     cart.submapper = 0;
 
     if (file_data[6] & (1<<3))
@@ -109,9 +110,17 @@ cartridge_data load_nes_file(const std::vector<uint8_t> &file_data, const std::s
     if (file_data[6] & (1<<2))
         report_error("trainers are unsupported");
 
+    // iNES 1.0 header
+    if ((file_data[7]&0x0C) == 0x00)
+        cart.mapper |= (file_data[7] & 0xF0); // upper nibble was unsupported on early versions
+
     // NES 2.0 file
-    if ((file_data[7] >> 2) == 2)
+    if ((file_data[7]&0x0C) == 0x08)
         load_nes2_data(file_data, cart);
+    else // set iNES 1.0 assumed values
+    {
+        cart.prg_ram_size = 0x2000; // default
+    }
 
     cart.prg_rom.resize(cart.prg_rom_size);
     cart.chr_rom.resize(cart.chr_rom_size);

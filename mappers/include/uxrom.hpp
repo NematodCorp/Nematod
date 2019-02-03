@@ -1,7 +1,7 @@
 /*
-screen_crc.hpp
+cnrom.hpp
 
-Copyright (c) 29 Yann BOUCHER (yann)
+Copyright (c) 30 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +22,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#ifndef SCREEN_CRC_HPP
-#define SCREEN_CRC_HPP
 
-#include "core/include/nes.hpp"
-#include "ppu/include/ppu.hpp"
+#include "mapper_base.hpp"
 
-/* CRC-32C (iSCSI) polynomial in reversed bit order. */
-#define POLY 0x82f63b78
+#include <vector>
 
-// CRC32C
-inline uint32_t crc32c(uint32_t crc, const unsigned char *buf, size_t len)
+class UxROM : public Mapper
 {
-    int k;
+public:
+    virtual void init(const cartridge_data& cart) override;
 
-    crc = ~crc;
-    while (len--) {
-        crc ^= *buf++;
-        for (k = 0; k < 8; k++)
-            crc = crc & 1 ? (crc >> 1) ^ POLY : crc >> 1;
-    }
-    return ~crc;
-}
+    void register_write(uint16_t addr, uint8_t val);
 
-inline uint32_t screen_crc32()
-{
-    return crc32c(0, NES::ppu.framebuffer.data(), 240*256);
-}
+private:
+    bool    handle_bus_conflicts { true };
 
-#endif // SCREEN_CRC_HPP
+    std::vector<uint8_t> prg_rom;
+};
+extern UxROM uxrom;

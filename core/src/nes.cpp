@@ -92,12 +92,17 @@ ParallelStepper stepper{cpu_rcv, ppu_rcv};
 
 void init()
 {
+    stepper.reset();
+    cart_loaded = false;
+
     oam_decay_cycles = total_cycles = 0;
     cpu_space.clear();
     ppu.addr_space.clear();
 
     ppu.cpu = &cpu;
     io_regs.m_cpu_co = stepper.m_coroutines[1].co.co;
+
+    nes_ram.m_data.fill(0);
 
     cpu_space.add_port(memory_port{&nes_ram , 0x0000}); // RAM mirroring
     cpu_space.add_port(memory_port{&nes_ram , 0x0800});
@@ -206,10 +211,9 @@ bool load_game_battery_save_data()
     {
         std::ifstream file(save_path);
 
-        std::vector<uint8_t> data(0x2000); // 0x6000-0x7FFF
-        if (!file.read((char*)data.data(), 0x2000))
+        std::vector<uint8_t> data(cart_data.nvram_size);
+        if (!file.read((char*)data.data(), data.size()))
         {
-            //report_error("cannot load save file '" + save_path + "'");
             return false;
         }
 
@@ -231,9 +235,8 @@ bool save_game_battery_save_data()
 
     std::ofstream file(save_path);
 
-    if (!file.write((char*)data.data(), 0x2000))
+    if (!file.write((char*)data.data(), cart_data.nvram_size))
     {
-        //report_error("cannot load save file '" + save_path + "'");
         return false;
     }
 

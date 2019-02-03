@@ -31,8 +31,11 @@ SOFTWARE.
 #include "input/include/standard_controller.hpp"
 #include "input/include/inputadapter.hpp"
 #include "nesloader/include/nesloader.hpp"
+#include "common/log.hpp"
 
 #include <SFML/Graphics.hpp>
+
+#include "tests/mappers/utils/screen_crc.hpp"
 
 StandardController controller_1;
 
@@ -41,7 +44,12 @@ int main()
     coroutines_init();
 
     NES::init();
-    NES::load_cartridge("roms/gradius.nes");
+    bool result = NES::load_cartridge("roms/001/serom.nes");
+    if (!result)
+    {
+        error("invalid rom\n");
+        exit(1);
+    }
 
     NES::input.controller_1 = &controller_1;
 
@@ -148,4 +156,6 @@ int main()
     {
         NES::save_game_battery_save_data();
     }
+
+    printf("crc : 0x%X\n", screen_crc32());
 }

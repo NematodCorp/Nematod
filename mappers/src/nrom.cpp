@@ -48,7 +48,7 @@ void NROM::init(const cartridge_data& cart)
     if (!cart.chr_rom.empty())
         memcpy(chr_rom.m_data.data(), cart.chr_rom.data(), 0x2000);
 
-    NES::cpu_space.add_port(memory_port{&crt_ram,  0x6000});
+    //NES::cpu_space.add_port(memory_port{&crt_ram,  0x6000});
     NES::cpu_space.add_port(memory_port{&prg_rom , 0x8000});
 
     if (!cart.chr_rom.empty())

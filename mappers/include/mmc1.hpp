@@ -46,15 +46,18 @@ private:
     std::vector<uint8_t> prg_rom;
     std::vector<uint8_t> prg_ram;
     std::vector<uint8_t> chr_rom;
+    std::vector<uint8_t> crt_ram;
 
     bool    handle_bus_conflicts { false };
+    bool    uses_chr_ram { false };
+    uint8_t last_written_chr_reg { 0 };
     uint8_t write_count { 0 };
     uint8_t shift_register { 0 };
     uint8_t ctrl_reg { 0 };
     uint8_t chr0_reg { 0 };
     uint8_t chr1_reg { 0 };
     uint8_t prg_reg  { 0 };
-    uint8_t last_write_cycle { 0 };
+    uint8_t last_write_cycle { 0xFF };
 };
 extern MMC1 mmc1;
 

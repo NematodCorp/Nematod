@@ -51,7 +51,7 @@ public:
 
 MMC1 mmc1;
 
-static RAM<0x2000> crt_ram;
+static RAMBankWindow<0x2000> crt_ram_bank;
 static ROMBankWindow<0x4000> prg_bank_low;
 static ROMBankWindow<0x4000> prg_bank_hi;
 static RAMBankWindow<0x1000> chr_bank_low;
@@ -60,8 +60,6 @@ static Register register_memory;
 
 void MMC1::init(const cartridge_data& cart)
 {
-    bool uses_chr_ram { false };
-
     handle_bus_conflicts = cart.submapper == 5; // SEROM
     prg_rom = cart.prg_rom;
     chr_rom = cart.chr_rom;
@@ -71,12 +69,18 @@ void MMC1::init(const cartridge_data& cart)
         chr_rom.resize(0x2000);
     }
 
+    crt_ram.resize(std::max(cart.prg_ram_size, cart.nvram_size));
+
     prg_bank_low.set_rom_base(prg_rom.data(), prg_rom.size());
     prg_bank_hi.set_rom_base(prg_rom.data(), prg_rom.size());
     chr_bank_low.set_rom_base(chr_rom.data(), chr_rom.size());
     chr_bank_hi.set_rom_base(chr_rom.data(), chr_rom.size());
 
-    NES::cpu_space.add_port(memory_port{&crt_ram,  0x6000});
+    crt_ram_bank.set_rom_base(crt_ram.data(), crt_ram.size());
+
+    if (!crt_ram.empty()) // PRG-(NV)RAM
+        NES::cpu_space.add_port(memory_port{&crt_ram_bank,  0x6000});
+
     NES::cpu_space.add_read_port(memory_port{&prg_bank_low, 0x8000});
     NES::cpu_space.add_read_port(memory_port{&prg_bank_hi , 0xC000});
     NES::cpu_space.add_write_port(memory_port{&register_memory, 0x8000});
@@ -142,9 +146,11 @@ void MMC1::register_write(uint16_t addr, uint8_t val)
                     break;
                 case 1:
                     chr0_reg = shift_register;
+                    last_written_chr_reg = 0;
                     break;
                 case 2:
                     chr1_reg = shift_register;
+                    last_written_chr_reg = 1;
                     break;
                 case 3:
                     prg_reg  = shift_register;
@@ -161,17 +167,12 @@ void MMC1::register_write(uint16_t addr, uint8_t val)
 void MMC1::load_battery_ram(const std::vector<uint8_t> &data)
 {
     assert(data.size() == crt_ram.size());
-    memcpy(crt_ram.m_internal.data(), data.data(), data.size());
+    crt_ram = data;
 }
 
 std::vector<uint8_t> MMC1::save_battery_ram()
 {
-    std::vector<uint8_t> out;
-    out.resize(crt_ram.size());
-
-    memcpy(out.data(), crt_ram.m_internal.data(), crt_ram.size());
-
-    return out;
+    return crt_ram;
 }
 
 void MMC1::apply_banking()
@@ -202,6 +203,7 @@ void MMC1::apply_banking()
     }
     else               // 8 KB mode
     {
+
         uint8_t bank = (chr0_reg&0b11110); // ignore low bit
         chr_bank_low.set_bank(bank);
         chr_bank_hi.set_bank(bank+1);
@@ -228,5 +230,18 @@ void MMC1::apply_banking()
     }
     // enable PRG RAM
     bool prg_ram_enabled = (prg_reg&0b10000) == 0;
-    crt_ram.set_valid(prg_ram_enabled);
+    crt_ram_bank.set_valid(prg_ram_enabled);
+
+    // SNROM (CHR RAM bank switching) is implicitly handled by the % bank_count in memory.hpp
+    // S(O|U|X)ROM : 512K PRG-ROM
+    if (prg_rom.size() == 0x80000)
+    {
+        uint8_t reg = last_written_chr_reg == 0 ? chr0_reg : chr1_reg;
+        if (last_written_chr_reg == 0 || chr_mode == 1) // chr1 ignored in 8KB mode
+        {
+            crt_ram_bank.set_bank((reg>>2)&0b11);
+            prg_bank_low.set_bank((prg_bank_low.bank() & 0b1111) | (reg&0x10)); // 256KB ROM bank
+            prg_bank_hi.set_bank((prg_bank_hi.bank() & 0b1111) | (reg&0x10)); // 256KB ROM bank
+        }
+    }
 }

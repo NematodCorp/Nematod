@@ -1,7 +1,7 @@
 /*
-vbi_test.cpp
+cnrom_tests.cpp
 
-Copyright (c) 19 Yann BOUCHER (yann)
+Copyright (c) 01 Yann BOUCHER (yann)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ SOFTWARE.
 
 */
 
+
 #include "gtest/gtest.h"
 
 #include "common/coroutine.hpp"
@@ -31,34 +32,49 @@ SOFTWARE.
 
 #include "../../utils/screen_crc.hpp"
 
+#include "common/log.hpp"
+
 struct coroutines_init_wrapper
 {
     coroutines_init_wrapper()
     {
         coroutines_init();
+        global_logger.filter(WARNING);
     }
 };
 static coroutines_init_wrapper co_init_instance;
 
-constexpr uint32_t crc_pass { 0x46d0a62e };
+struct test_rom
+{
+    std::string path;
+    uint32_t crc_pass;
+};
+
+const test_rom test_list[] =
+{
+    { "M0_P32K_C8K_V.nes", 0x38DFE93D },
+};
 
 namespace
 {
 
-TEST(Ppu, SEROMTest)
+TEST(Ppu, NROMTest)
 {
-    NES::init();
-    assert(NES::load_cartridge("roms/001/serom.nes"));
-
-    NES::power_cycle();
-
-    // run for ten frames
-    for (size_t i { 0 }; i < 10; ++i)
+    for (auto test : test_list)
     {
-        NES::run_frame();
-    }
+        NES::init();
+        assert(NES::load_cartridge("roms/000/" + test.path));
 
-    EXPECT_EQ(screen_crc32(), crc_pass);
+        NES::power_cycle();
+
+        // run for ten frames
+        for (size_t i { 0 }; i < 5; ++i)
+        {
+            NES::run_frame();
+        }
+
+        EXPECT_EQ(screen_crc32(), test.crc_pass);
+    }
 }
 
 

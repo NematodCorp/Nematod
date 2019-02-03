@@ -49,10 +49,10 @@ template<std::size_t t_size>
 class RAM : public MemoryInterfaceable {
 public:
     RAM() : MemoryInterfaceable(t_size) {};
-    virtual data  read(address offset) override {return m_internal[offset];};
-    virtual void write(address offset, data value) override {m_internal[offset] = value;};
+    virtual data  read(address offset) override {return m_data[offset];};
+    virtual void write(address offset, data value) override {m_data[offset] = value;};
 public:
-    std::array<data, t_size> m_internal;
+    std::array<data, t_size> m_data;
 };
 
 template<std::size_t t_size, typename lambda> // Battery-backed RAM
@@ -94,16 +94,15 @@ public:
 
     void set_bank(size_t bank_number)
     {
-        if (bank_number >= rom_bank_count)
-        {
-            m_valid = false; // mark this memory region as invalid to enable open bus behavior
-        }
-        else
-        {
-            m_valid = t_size;
-            rom_ptr = rom_base + bank_number*t_size;
-        }
+        bank_number %= rom_bank_count;
+
+        cur_bank = bank_number;
+
+        rom_ptr = rom_base + cur_bank*t_size;
     }
+
+    unsigned bank() const
+    { return cur_bank; }
 
     size_t bank_count() const
     { return rom_bank_count; }
@@ -118,6 +117,7 @@ public:
     };
 private:
     data* rom_base { nullptr };
+    size_t cur_bank { 0 };
     size_t rom_bank_count { 0 };
 
     data* rom_ptr { nullptr };

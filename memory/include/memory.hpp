@@ -34,5 +34,5 @@ private:
 protected:
     std::vector<memory_port> m_read_ports;
     std::vector<memory_port> m_write_ports;
-    data m_last_written_value = 0x00; // Used to emulate open-bus.
+    data m_last_bus_value = 0x00; // Used to emulate open-bus.
 };

@@ -38,19 +38,19 @@ struct cartridge_data
         FourScreen
     };
 
-    std::string          title;
-    unsigned             mapper;
-    unsigned             submapper;
-    MirroringType        mirroring;
-    unsigned long        prg_rom_size;
-    unsigned long        chr_rom_size;
-    std::vector<uint8_t> prg_rom;
-    std::vector<uint8_t> chr_rom;
-    unsigned long        prg_ram_size;
-    unsigned long        nvram_size;
-    unsigned long        chr_ram_size;
-    unsigned long        chr_nvram_size;
-    bool battery_saved_ram;
+    std::string          title {};
+    unsigned             mapper { 0 };
+    unsigned             submapper { 0 };
+    MirroringType        mirroring { Horizontal };
+    unsigned long        prg_rom_size { 0 };
+    unsigned long        chr_rom_size { 0 };
+    std::vector<uint8_t> prg_rom {};
+    std::vector<uint8_t> chr_rom {};
+    unsigned long        prg_ram_size { 0 };
+    unsigned long        nvram_size { 0 };
+    unsigned long        chr_ram_size { 0 };
+    unsigned long        chr_nvram_size { 0 };
+    bool battery_saved_ram { false };
 };
 
 class cartridge_loader_error : public std::runtime_error

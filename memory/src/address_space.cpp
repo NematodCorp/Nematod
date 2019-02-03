@@ -79,12 +79,12 @@ data AddressSpace::read(address ptr) {
     auto* port = find_port(ptr, m_read_ports);
     if (!port)
     {
-        info("open bus at 0x%x\n", ptr);
-        //assert(false);
-        return m_last_written_value; // open bus
+        info("read open bus at 0x%x\n", ptr);
+
+        return m_last_bus_value; // open bus
     }
     else
-        return port->module->read(ptr - port->base_address);
+        return m_last_bus_value = port->module->read(ptr - port->base_address);
 }
 
 data AddressSpace::poke(address ptr)
@@ -92,9 +92,9 @@ data AddressSpace::poke(address ptr)
     auto* port = find_port(ptr, m_read_ports);
     if (!port)
     {
-        info("open bus at 0x%x\n", ptr);
+        info("poke open bus at 0x%x\n", ptr);
         //assert(false);
-        return m_last_written_value; // open bus
+        return m_last_bus_value; // open bus
     }
     else
         return port->module->poke(ptr - port->base_address);
@@ -102,11 +102,12 @@ data AddressSpace::poke(address ptr)
 
 void AddressSpace::write(address ptr, data value) {
     auto* port = find_port(ptr, m_write_ports);
+    m_last_bus_value = value; // open bus
+
     if (!port)
     {
-        info("open bus at 0x%x\n", ptr);
+        info("write open bus at 0x%x\n", ptr);
         //assert(false);
-        m_last_written_value = value; // open bus
     }
     else
         port->module->write(ptr - port->base_address, value);

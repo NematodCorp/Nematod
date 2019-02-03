@@ -29,9 +29,10 @@ SOFTWARE.
 #include "nrom.hpp"
 #include "mmc1.hpp"
 #include "cnrom.hpp"
+#include "uxrom.hpp"
 
 std::array<Mapper*, 256> mapper_list =
-{&nrom, &mmc1, &nrom, &cnrom, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+{&nrom, &mmc1, &uxrom, &cnrom, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
