@@ -39,12 +39,18 @@ SOFTWARE.
 
 StandardController controller_1;
 
-int main()
+int main(int argc, char* argv[])
 {
+    if (argc < 2)
+    {
+        fprintf(stderr, "usage : <executable> <file.nes>\n");
+        return -1;
+    }
+    
     coroutines_init();
 
     NES::init();
-    bool result = NES::load_cartridge("roms/001/serom.nes");
+    bool result = NES::load_cartridge(argv[1]); // "roms/001/serom.nes"
     if (!result)
     {
         error("invalid rom\n");
