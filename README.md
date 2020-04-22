@@ -10,3 +10,7 @@ cmake ..
 make
 ```
 The outputs will be in the bin/ subfolder.
+
+## Run
+Usage:
+`<executable> your_rom.nes`
